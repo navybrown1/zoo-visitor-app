@@ -52,7 +52,9 @@
           "locationWhenInUsePermission": "Allow Zoo Visitor to show your position on the park map."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      "expo-image"
     ]
   }
 }

@@ -6,16 +6,21 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
 import type { Ticket, TicketType } from '../types';
 import { api } from '../services/api';
+import { Button } from './ui/Button';
+import { colors, radii, spacing, typography } from '../theme';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   onPurchased: (ticket: Ticket) => void;
+  onToast: (message: string, tone: 'success' | 'error') => void;
 }
 
 const OPTIONS: { type: TicketType; label: string; price: number }[] = [
@@ -28,7 +33,7 @@ const OPTIONS: { type: TicketType; label: string; price: number }[] = [
 /**
  * F001 — Mock checkout flow that creates a digital pass via the Express API.
  */
-export function CheckoutModal({ visible, onClose, onPurchased }: Props) {
+export function CheckoutModal({ visible, onClose, onPurchased, onToast }: Props) {
   const [type, setType] = useState<TicketType>('adult');
   const [visitorName, setVisitorName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,28 +42,40 @@ export function CheckoutModal({ visible, onClose, onPurchased }: Props) {
 
   const handlePay = async () => {
     if (!visitorName.trim()) {
-      Alert.alert('Name required', 'Enter the visitor name for the digital pass.');
+      onToast('Enter the visitor name for the digital pass.', 'error');
       return;
     }
     setLoading(true);
     try {
       const ticket = await api.purchaseTicket(type, visitorName.trim());
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onPurchased(ticket);
       setVisitorName('');
       setType('adult');
       onClose();
-      Alert.alert('Payment successful (mock)', 'Your digital pass was added to the wallet.');
+      onToast('Payment successful — pass added to wallet.', 'success');
     } catch (err) {
-      Alert.alert('Checkout failed', err instanceof Error ? err.message : 'Unknown error');
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      onToast(err instanceof Error ? err.message : 'Checkout failed', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.overlay}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <MotiView
+          from={{ translateY: 40, opacity: 0 }}
+          animate={{ translateY: 0, opacity: 1 }}
+          transition={{ type: 'timing', duration: 280 }}
+          style={styles.sheet}
+        >
+          <View style={styles.handle} />
           <Text style={styles.title}>Buy Zoo Tickets</Text>
           <Text style={styles.subtitle}>Mock checkout — no real payment processed</Text>
 
@@ -66,6 +83,7 @@ export function CheckoutModal({ visible, onClose, onPurchased }: Props) {
           <TextInput
             style={styles.input}
             placeholder="e.g. Jordan Lee"
+            placeholderTextColor={colors.textMuted}
             value={visitorName}
             onChangeText={setVisitorName}
             autoCapitalize="words"
@@ -73,38 +91,33 @@ export function CheckoutModal({ visible, onClose, onPurchased }: Props) {
 
           <Text style={styles.label}>Ticket type</Text>
           <View style={styles.options}>
-            {OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.type}
-                onPress={() => setType(opt.type)}
-                style={[styles.option, type === opt.type && styles.optionActive]}
-              >
-                <Text style={[styles.optionText, type === opt.type && styles.optionTextActive]}>
-                  {opt.label} · ${opt.price}
-                </Text>
-              </Pressable>
-            ))}
+            {OPTIONS.map((opt) => {
+              const active = type === opt.type;
+              return (
+                <Pressable
+                  key={opt.type}
+                  onPress={() => setType(opt.type)}
+                  style={[styles.option, active && styles.optionActive]}
+                >
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    {opt.label} · ${opt.price}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={styles.total}>Total: ${selected.price.toFixed(2)}</Text>
 
-          <Pressable
-            style={[styles.payBtn, loading && styles.payBtnDisabled]}
+          <Button
+            label="Pay (Mock) & Add to Wallet"
             onPress={handlePay}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.payText}>Pay (Mock) & Add to Wallet</Text>
-            )}
-          </Pressable>
-
-          <Pressable onPress={onClose} style={styles.cancel}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        </View>
-      </View>
+            loading={loading}
+            style={styles.payBtn}
+          />
+          <Button label="Cancel" variant="ghost" onPress={onClose} haptic={false} />
+        </MotiView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -112,47 +125,68 @@ export function CheckoutModal({ visible, onClose, onPurchased }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 20,
-    paddingBottom: 32,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing.xl,
+    paddingBottom: spacing.xxl,
   },
-  title: { fontSize: 20, fontWeight: '800', color: '#1B5E20' },
-  subtitle: { fontSize: 12, color: '#666', marginBottom: 16, marginTop: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6 },
+  handle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginBottom: spacing.lg,
+  },
+  title: {
+    ...typography.title,
+    color: colors.primary,
+  },
+  subtitle: {
+    ...typography.caption,
+    marginBottom: spacing.lg,
+    marginTop: 4,
+  },
+  label: {
+    ...typography.label,
+    marginBottom: spacing.sm,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
     fontSize: 16,
+    fontFamily: typography.body.fontFamily,
+    color: colors.text,
+    backgroundColor: colors.background,
   },
-  options: { gap: 8, marginBottom: 12 },
+  options: { gap: spacing.sm, marginBottom: spacing.md },
   option: {
     borderWidth: 1,
-    borderColor: '#C8E6C9',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: colors.primaryLight,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
   },
-  optionActive: { backgroundColor: '#1B5E20', borderColor: '#1B5E20' },
-  optionText: { fontSize: 15, color: '#1B5E20', fontWeight: '600' },
-  optionTextActive: { color: '#fff' },
-  total: { fontSize: 18, fontWeight: '700', marginVertical: 12, color: '#222' },
-  payBtn: {
-    backgroundColor: '#1B5E20',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
+  optionActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  optionText: {
+    ...typography.bodyMedium,
+    color: colors.primary,
   },
-  payBtnDisabled: { opacity: 0.7 },
-  payText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  cancel: { alignItems: 'center', marginTop: 14 },
-  cancelText: { color: '#666', fontSize: 15 },
+  optionTextActive: { color: colors.white },
+  total: {
+    fontFamily: typography.section.fontFamily,
+    fontSize: 18,
+    marginVertical: spacing.md,
+    color: colors.text,
+  },
+  payBtn: { marginBottom: spacing.sm },
 });

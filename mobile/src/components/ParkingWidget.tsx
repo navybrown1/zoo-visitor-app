@@ -1,15 +1,56 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { Card } from './ui/Card';
 import type { ParkingLot } from '../types';
+import { colors, radii, spacing, typography } from '../theme';
 
 interface Props {
   lots: ParkingLot[];
 }
 
 function fillColor(percent: number): string {
-  if (percent >= 90) return '#C62828';
-  if (percent >= 70) return '#EF6C00';
-  return '#2E7D32';
+  if (percent >= 90) return colors.danger;
+  if (percent >= 70) return colors.warning;
+  return colors.success;
+}
+
+function LotBar({ lot }: { lot: ParkingLot }) {
+  const width = useSharedValue(0);
+
+  useEffect(() => {
+    width.value = withTiming(Math.min(100, lot.fillPercent), {
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [lot.fillPercent, width]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${width.value}%`,
+    backgroundColor: fillColor(lot.fillPercent),
+  }));
+
+  return (
+    <View style={styles.lot}>
+      <View style={styles.lotHeader}>
+        <Text style={styles.lotName}>{lot.name}</Text>
+        <Text style={[styles.percent, { color: fillColor(lot.fillPercent) }]}>
+          {lot.fillPercent}% full
+        </Text>
+      </View>
+      <View style={styles.track}>
+        <Animated.View style={[styles.fill, fillStyle]} />
+      </View>
+      <Text style={styles.detail}>
+        {lot.available} open · {lot.occupied}/{lot.capacity} occupied
+      </Text>
+    </View>
+  );
 }
 
 /**
@@ -17,71 +58,55 @@ function fillColor(percent: number): string {
  */
 export function ParkingWidget({ lots }: Props) {
   return (
-    <View style={styles.card}>
+    <Card style={styles.card}>
       <Text style={styles.heading}>Parking Availability</Text>
       {lots.length === 0 ? (
         <Text style={styles.empty}>No parking data.</Text>
       ) : (
-        lots.map((lot) => (
-          <View key={lot.id} style={styles.lot}>
-            <View style={styles.lotHeader}>
-              <Text style={styles.lotName}>{lot.name}</Text>
-              <Text style={[styles.percent, { color: fillColor(lot.fillPercent) }]}>
-                {lot.fillPercent}% full
-              </Text>
-            </View>
-            <View style={styles.track}>
-              <View
-                style={[
-                  styles.fill,
-                  {
-                    width: `${Math.min(100, lot.fillPercent)}%`,
-                    backgroundColor: fillColor(lot.fillPercent),
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.detail}>
-              {lot.available} open · {lot.occupied}/{lot.capacity} occupied
-            </Text>
-          </View>
-        ))
+        lots.map((lot) => <LotBar key={lot.id} lot={lot} />)
       )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 12,
-    marginTop: 12,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
   },
   heading: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B5E20',
-    marginBottom: 12,
+    ...typography.section,
+    color: colors.primary,
+    marginBottom: spacing.md,
   },
-  empty: { color: '#666' },
-  lot: { marginBottom: 14 },
+  empty: { ...typography.body, color: colors.textSecondary },
+  lot: { marginBottom: spacing.md },
   lotHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
-  lotName: { fontSize: 14, fontWeight: '600', color: '#222', flex: 1, paddingRight: 8 },
-  percent: { fontSize: 13, fontWeight: '700' },
+  lotName: {
+    ...typography.bodyMedium,
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  percent: {
+    fontFamily: typography.label.fontFamily,
+    fontSize: 13,
+  },
   track: {
-    height: 8,
-    backgroundColor: '#EEEEEE',
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: colors.background,
+    borderRadius: radii.full,
     overflow: 'hidden',
   },
-  fill: { height: '100%', borderRadius: 4 },
-  detail: { marginTop: 4, fontSize: 12, color: '#666' },
+  fill: {
+    height: '100%',
+    borderRadius: radii.full,
+  },
+  detail: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+  },
 });

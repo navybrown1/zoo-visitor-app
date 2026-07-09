@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Chip } from './ui/Chip';
 import type { ServiceType } from '../types';
+import { colors, spacing } from '../theme';
 
 export type ServiceFilters = Record<ServiceType, boolean>;
 
@@ -10,9 +12,9 @@ interface Props {
 }
 
 const LABELS: { key: ServiceType; label: string; color: string }[] = [
-  { key: 'restroom', label: 'Restrooms', color: '#1565C0' },
-  { key: 'accessibility', label: 'Accessibility', color: '#6A1B9A' },
-  { key: 'family', label: 'Family', color: '#E65100' },
+  { key: 'restroom', label: 'Restrooms', color: colors.service.restroom },
+  { key: 'accessibility', label: 'Accessibility', color: colors.service.accessibility },
+  { key: 'family', label: 'Family', color: colors.service.family },
 ];
 
 /**
@@ -21,20 +23,15 @@ const LABELS: { key: ServiceType; label: string; color: string }[] = [
 export function ServiceFilterToggles({ filters, onChange }: Props) {
   return (
     <View style={styles.row}>
-      {LABELS.map(({ key, label, color }) => {
-        const active = filters[key];
-        return (
-          <Pressable
-            key={key}
-            onPress={() => onChange({ ...filters, [key]: !active })}
-            style={[styles.chip, { borderColor: color }, active && { backgroundColor: color }]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-          >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-          </Pressable>
-        );
-      })}
+      {LABELS.map(({ key, label, color }) => (
+        <Chip
+          key={key}
+          label={label}
+          color={color}
+          active={filters[key]}
+          onPress={() => onChange({ ...filters, [key]: !filters[key] })}
+        />
+      ))}
     </View>
   );
 }
@@ -43,24 +40,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-  },
-  chip: {
-    borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#fff',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-  },
-  chipTextActive: {
-    color: '#fff',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
 });

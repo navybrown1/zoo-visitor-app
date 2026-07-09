@@ -1,0 +1,30 @@
+export const colors = {
+  primary: '#1B5E20',
+  primaryDark: '#0D3B12',
+  primaryLight: '#C8E6C9',
+  primarySoft: '#E8F5E9',
+  accent: '#F9A825',
+  background: '#F4F7F4',
+  surface: '#FFFFFF',
+  text: '#1A1F1A',
+  textSecondary: '#5C6B5C',
+  textMuted: '#8A968A',
+  border: '#D7E3D7',
+  success: '#2E7D32',
+  successSoft: '#E8F5E9',
+  warning: '#EF6C00',
+  warningSoft: '#FFF3E0',
+  danger: '#C62828',
+  dangerSoft: '#FFEBEE',
+  info: '#0277BD',
+  infoSoft: '#E1F5FE',
+  service: {
+    restroom: '#1565C0',
+    accessibility: '#6A1B9A',
+    family: '#E65100',
+  },
+  overlay: 'rgba(13, 59, 18, 0.45)',
+  white: '#FFFFFF',
+} as const;
+
+export type ServiceColorKey = keyof typeof colors.service;

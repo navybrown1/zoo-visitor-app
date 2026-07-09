@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { api } from '../services/api';
 import type { Exhibit, LatLng, MapPayload } from '../types';
@@ -16,6 +17,7 @@ import {
   type ServiceFilters,
 } from '../components/ServiceFilterToggles';
 import { ParkMap } from '../components/ParkMap';
+import { colors, radii, spacing, typography } from '../theme';
 
 const DEFAULT_REGION = {
   latitude: 40.7678,
@@ -97,7 +99,7 @@ export function MapScreen() {
   if (loading || !mapData) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1B5E20" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading park map…</Text>
       </View>
     );
@@ -114,6 +116,7 @@ export function MapScreen() {
         routeCoords={routeCoords}
         showsUserLocation={!!userLocation}
         onExhibitPress={routeToExhibit}
+        selectedExhibitId={selectedExhibit?.id}
       />
 
       <View style={styles.footer}>
@@ -122,32 +125,36 @@ export function MapScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.exhibitRow}
         >
-          {mapData.exhibits.map((ex) => (
-            <Pressable
-              key={ex.id}
-              style={[
-                styles.exhibitChip,
-                selectedExhibit?.id === ex.id && styles.exhibitChipActive,
-              ]}
-              onPress={() => routeToExhibit(ex)}
-            >
-              <Text
-                style={[
-                  styles.exhibitChipText,
-                  selectedExhibit?.id === ex.id && styles.exhibitChipTextActive,
+          {mapData.exhibits.map((ex) => {
+            const active = selectedExhibit?.id === ex.id;
+            return (
+              <Pressable
+                key={ex.id}
+                onPress={() => routeToExhibit(ex)}
+                style={({ pressed }) => [
+                  styles.thumbChip,
+                  active && styles.thumbChipActive,
+                  pressed && { opacity: 0.88 },
                 ]}
               >
-                {ex.name}
-              </Text>
-            </Pressable>
-          ))}
+                {ex.imageUrl ? (
+                  <Image source={{ uri: ex.imageUrl }} style={styles.thumb} contentFit="cover" />
+                ) : (
+                  <View style={[styles.thumb, styles.thumbFallback]} />
+                )}
+                <Text style={[styles.thumbLabel, active && styles.thumbLabelActive]} numberOfLines={1}>
+                  {ex.name}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
         {selectedExhibit && (
           <View style={styles.routeBar}>
             <Text style={styles.routeText}>
-              {routing ? 'Calculating route…' : `Route to ${selectedExhibit.name}`}
+              {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
             </Text>
-            <Pressable onPress={clearRoute}>
+            <Pressable onPress={clearRoute} hitSlop={8}>
               <Text style={styles.clearText}>Clear</Text>
             </Pressable>
           </View>
@@ -158,34 +165,59 @@ export function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 8, color: '#666' },
+  loadingText: { ...typography.caption, marginTop: spacing.sm },
   footer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    paddingVertical: 10,
+    borderTopColor: colors.border,
+    paddingVertical: spacing.md,
   },
-  exhibitRow: { paddingHorizontal: 12, gap: 8 },
-  exhibitChip: {
+  exhibitRow: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  thumbChip: {
+    width: 92,
+    alignItems: 'center',
+    borderRadius: radii.md,
+    padding: 6,
     borderWidth: 1,
-    borderColor: '#C8E6C9',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  exhibitChipActive: { backgroundColor: '#1B5E20', borderColor: '#1B5E20' },
-  exhibitChipText: { fontSize: 13, fontWeight: '600', color: '#1B5E20' },
-  exhibitChipTextActive: { color: '#fff' },
+  thumbChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  thumb: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.sm,
+    marginBottom: 6,
+  },
+  thumbFallback: { backgroundColor: colors.primaryLight },
+  thumbLabel: {
+    ...typography.caption,
+    color: colors.text,
+    textAlign: 'center',
+    fontFamily: typography.label.fontFamily,
+  },
+  thumbLabelActive: { color: colors.primary },
   routeBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
   },
-  routeText: { fontSize: 13, color: '#333', fontWeight: '600' },
-  clearText: { fontSize: 13, color: '#C62828', fontWeight: '700' },
+  routeText: {
+    ...typography.bodyMedium,
+    color: colors.text,
+  },
+  clearText: {
+    ...typography.label,
+    color: colors.danger,
+  },
 });

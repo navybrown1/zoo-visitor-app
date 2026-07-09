@@ -20,6 +20,8 @@ export interface Exhibit {
   latitude: number;
   longitude: number;
   description: string;
+  /** Animal / habitat photo shown on map cards and chips */
+  imageUrl?: string;
 }
 
 export type ServiceType = 'restroom' | 'accessibility' | 'family';

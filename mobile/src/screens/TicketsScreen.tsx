@@ -1,17 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  RefreshControl,
-} from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
 import type { Ticket } from '../types';
 import { TicketCard } from '../components/TicketCard';
 import { CheckoutModal } from '../components/CheckoutModal';
+import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { Toast } from '../components/ui/Toast';
+import { colors, spacing } from '../theme';
 
 /**
  * F001 — Digital ticket purchasing & wallet integration.
@@ -20,6 +18,11 @@ export function TicketsScreen() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    tone: 'success' | 'error' | 'info';
+  }>({ visible: false, message: '', tone: 'info' });
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -37,64 +40,71 @@ export function TicketsScreen() {
     }, [load]),
   );
 
+  const showToast = (message: string, tone: 'success' | 'error') => {
+    setToast({ visible: true, message, tone });
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Ticket Wallet</Text>
-        <Pressable style={styles.buyBtn} onPress={() => setCheckoutOpen(true)}>
-          <Text style={styles.buyText}>Buy Tickets</Text>
-        </Pressable>
+      <View style={styles.headerRow}>
+        <View style={styles.headerText}>
+          <ScreenHeader title="Ticket Wallet" subtitle="Your digital zoo passes" />
+        </View>
+        <Button
+          label="Buy Tickets"
+          onPress={() => setCheckoutOpen(true)}
+          style={styles.buyBtn}
+        />
       </View>
 
       <FlatList
         data={tickets}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No passes yet</Text>
-            <Text style={styles.emptyBody}>
-              Purchase a mock ticket to generate a digital QR pass for entry.
-            </Text>
-          </View>
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />
         }
-        renderItem={({ item }) => <TicketCard ticket={item} />}
+        ListEmptyComponent={
+          <EmptyState
+            icon="ticket-outline"
+            title="No passes yet"
+            body="Purchase a mock ticket to generate a digital QR pass for entry."
+            actionLabel="Buy Tickets"
+            onAction={() => setCheckoutOpen(true)}
+          />
+        }
+        renderItem={({ item, index }) => <TicketCard ticket={item} index={index} />}
       />
 
       <CheckoutModal
         visible={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         onPurchased={(ticket) => setTickets((prev) => [ticket, ...prev])}
+        onToast={showToast}
+      />
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        tone={toast.tone}
+        onHide={() => setToast((t) => ({ ...t, visible: false }))}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F1F8E9' },
-  header: {
+  container: { flex: 1, backgroundColor: colors.background },
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingRight: spacing.lg,
   },
-  title: { fontSize: 22, fontWeight: '800', color: '#1B5E20' },
+  headerText: { flex: 1 },
   buyBtn: {
-    backgroundColor: '#1B5E20',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    minHeight: 42,
+    paddingVertical: spacing.sm,
   },
-  buyText: { color: '#fff', fontWeight: '700' },
-  list: { padding: 16, paddingBottom: 32 },
-  empty: {
-    marginTop: 48,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 20 },
+  list: { padding: spacing.lg, paddingBottom: spacing.xxl, flexGrow: 1 },
 });

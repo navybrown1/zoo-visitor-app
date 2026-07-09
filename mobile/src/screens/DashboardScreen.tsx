@@ -1,29 +1,50 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, RefreshControl } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import {
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  View,
+  Text,
+  Pressable,
+} from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { Image } from 'expo-image';
+import { MotiView } from 'moti';
 import { api } from '../services/api';
-import type { ParkingLot, WeatherAlert } from '../types';
+import type { Exhibit, ParkingLot, WeatherAlert } from '../types';
+import type { RootTabParamList } from '../navigation/RootTabs';
 import { WeatherBanner } from '../components/WeatherBanner';
 import { ParkingWidget } from '../components/ParkingWidget';
 import { NotificationListener } from '../components/NotificationListener';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { colors, radii, spacing, typography } from '../theme';
 
 /**
  * Dashboard aggregates:
  * F009 — parking availability
  * F014 — weather / heat safety banner
  * F006 — safety notification listener
+ * Plus a photo strip of habitats for atmosphere.
  */
 export function DashboardScreen() {
+  const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const [lots, setLots] = useState<ParkingLot[]>([]);
   const [weather, setWeather] = useState<WeatherAlert | null>(null);
+  const [exhibits, setExhibits] = useState<Exhibit[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [parking, wx] = await Promise.all([api.getParking(), api.getWeather()]);
+      const [parking, wx, map] = await Promise.all([
+        api.getParking(),
+        api.getWeather(),
+        api.getMap(),
+      ]);
       setLots(parking);
       setWeather(wx);
+      setExhibits(map.exhibits);
     } finally {
       setRefreshing(false);
     }
@@ -35,16 +56,57 @@ export function DashboardScreen() {
     }, [load]),
   );
 
+  const subtitle =
+    weather?.alertLevel && weather.alertLevel !== 'none'
+      ? `Heat advisory active · ${weather.tempF}°F`
+      : 'Parking · Weather · Safety';
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />
+      }
     >
-      <View style={styles.header}>
-        <Text style={styles.title}>Visitor Dashboard</Text>
-        <Text style={styles.subtitle}>Parking · Weather · Safety</Text>
-      </View>
+      <ScreenHeader title="Visitor Dashboard" subtitle={subtitle} />
+
+      {exhibits.length > 0 ? (
+        <View style={styles.stripSection}>
+          <Text style={styles.stripTitle}>Today at the zoo</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.strip}
+          >
+            {exhibits.map((ex, index) => (
+              <MotiView
+                key={ex.id}
+                from={{ opacity: 0, translateX: 12 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 300, delay: index * 50 }}
+              >
+                <Pressable
+                  style={styles.stripCard}
+                  onPress={() => navigation.navigate('Map')}
+                >
+                  <Image
+                    source={{ uri: ex.imageUrl }}
+                    style={styles.stripImage}
+                    contentFit="cover"
+                    transition={250}
+                  />
+                  <View style={styles.stripLabelWrap}>
+                    <Text style={styles.stripLabel} numberOfLines={1}>
+                      {ex.name}
+                    </Text>
+                  </View>
+                </Pressable>
+              </MotiView>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <WeatherBanner weather={weather} />
       <ParkingWidget lots={lots} />
@@ -54,9 +116,44 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: 24 },
-  header: { paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 22, fontWeight: '800', color: '#1B5E20' },
-  subtitle: { fontSize: 13, color: '#666', marginTop: 2 },
+  stripSection: {
+    marginTop: spacing.sm,
+  },
+  stripTitle: {
+    ...typography.section,
+    color: colors.primary,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  strip: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  stripCard: {
+    width: 148,
+    height: 110,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    backgroundColor: colors.primarySoft,
+  },
+  stripImage: {
+    width: '100%',
+    height: '100%',
+  },
+  stripLabelWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(13,59,18,0.72)',
+  },
+  stripLabel: {
+    ...typography.caption,
+    color: colors.white,
+    fontFamily: typography.label.fontFamily,
+  },
 });

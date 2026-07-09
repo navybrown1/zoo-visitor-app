@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { MotiView } from 'moti';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 import type { SafetyNotification } from '../types';
+import { Card } from './ui/Card';
+import { EmptyState } from './ui/EmptyState';
+import { colors, radii, spacing, typography } from '../theme';
 
-// Show alerts while the app is foregrounded (scaffold for F006).
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -16,14 +20,11 @@ Notifications.setNotificationHandler({
 });
 
 interface Props {
-  /** Poll interval in ms for mock safety broadcasts. */
   pollMs?: number;
 }
 
 /**
  * F006 — Notification listener scaffold for lost-child and emergency broadcasts.
- * Polls the Express API and surfaces in-app alerts; also schedules a local notification
- * when a new broadcast appears (mock push pipeline).
  */
 export function NotificationListener({ pollMs = 8000 }: Props) {
   const [items, setItems] = useState<SafetyNotification[]>([]);
@@ -47,7 +48,6 @@ export function NotificationListener({ pollMs = 8000 }: Props) {
       for (const n of notifications) {
         if (!seenIds.current.has(n.id)) {
           seenIds.current.add(n.id);
-          // Local notification stands in for a real push provider in Sprint 1.
           await Notifications.scheduleNotificationAsync({
             content: {
               title: n.title,
@@ -67,11 +67,9 @@ export function NotificationListener({ pollMs = 8000 }: Props) {
     ensurePermission();
     poll();
     const id = setInterval(poll, pollMs);
-
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') poll();
     });
-
     return () => {
       clearInterval(id);
       sub.remove();
@@ -79,49 +77,79 @@ export function NotificationListener({ pollMs = 8000 }: Props) {
   }, [ensurePermission, poll, pollMs]);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.heading}>Safety Alerts</Text>
+    <Card style={styles.card}>
+      <View style={styles.headingRow}>
+        <Ionicons name="shield-checkmark-outline" size={20} color={colors.danger} />
+        <Text style={styles.heading}>Safety Alerts</Text>
+      </View>
       <Text style={styles.sub}>Listening for lost-child & emergency broadcasts</Text>
+
       {items.length === 0 ? (
-        <Text style={styles.empty}>No active alerts.</Text>
+        <EmptyState
+          icon="checkmark-circle-outline"
+          title="All clear"
+          body="No active safety broadcasts right now."
+        />
       ) : (
-        items.map((n) => (
-          <View
+        items.map((n, index) => (
+          <MotiView
             key={n.id}
-            style={[styles.alert, n.type === 'emergency' ? styles.emergency : styles.lostChild]}
+            from={{ opacity: 0, translateX: -12 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'timing', duration: 280, delay: index * 50 }}
+            style={[
+              styles.alert,
+              n.type === 'emergency' ? styles.emergency : styles.lostChild,
+            ]}
           >
             <Text style={styles.alertTitle}>{n.title}</Text>
             <Text style={styles.alertBody}>{n.message}</Text>
             <Text style={styles.alertMeta}>{new Date(n.createdAt).toLocaleString()}</Text>
-          </View>
+          </MotiView>
         ))
       )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 12,
-    marginTop: 12,
-    marginBottom: 24,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.xxl,
   },
-  heading: { fontSize: 16, fontWeight: '700', color: '#B71C1C' },
-  sub: { fontSize: 12, color: '#666', marginBottom: 10, marginTop: 2 },
-  empty: { color: '#666' },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  heading: {
+    ...typography.section,
+    color: colors.danger,
+  },
+  sub: {
+    ...typography.caption,
+    marginBottom: spacing.md,
+    marginTop: 2,
+  },
   alert: {
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  lostChild: { backgroundColor: '#FFF3E0' },
-  emergency: { backgroundColor: '#FFEBEE' },
-  alertTitle: { fontWeight: '700', fontSize: 14, color: '#222', marginBottom: 4 },
-  alertBody: { fontSize: 13, color: '#333', lineHeight: 18 },
-  alertMeta: { fontSize: 11, color: '#888', marginTop: 6 },
+  lostChild: { backgroundColor: colors.warningSoft },
+  emergency: { backgroundColor: colors.dangerSoft },
+  alertTitle: {
+    ...typography.bodyMedium,
+    marginBottom: 4,
+  },
+  alertBody: {
+    ...typography.body,
+    color: colors.text,
+  },
+  alertMeta: {
+    ...typography.caption,
+    marginTop: spacing.sm,
+    color: colors.textMuted,
+  },
 });
