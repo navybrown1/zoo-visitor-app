@@ -1,4 +1,4 @@
 /**
- * TypeScript resolution stub — Metro picks ParkMap.native.tsx / ParkMap.web.tsx at runtime.
+ * TypeScript resolution stub — Metro picks platform files at runtime.
  */
-export { ParkMap } from './ParkMap.native';
+export { ParkMap } from './ParkMap.web';

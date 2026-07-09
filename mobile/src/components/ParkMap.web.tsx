@@ -1,12 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import type { Exhibit, GuestService, LatLng } from '../types';
 import { colors, radii, spacing, typography } from '../theme';
-import { Card } from './ui/Card';
 import { ExhibitPhoto } from './ExhibitPhoto';
 import { getExhibitImageSource } from '../data/exhibitImages';
+import { MAP_HOTSPOTS, SERVICE_HOTSPOTS } from '../data/mapHotspots';
+
+const PARK_MAP = require('../../assets/map/park-map.png');
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
   restroom: colors.service.restroom,
@@ -15,9 +25,9 @@ const SERVICE_COLORS: Record<GuestService['type'], string> = {
 };
 
 const SERVICE_ICONS: Record<GuestService['type'], keyof typeof Ionicons.glyphMap> = {
-  restroom: 'water-outline',
-  accessibility: 'body-outline',
-  family: 'people-outline',
+  restroom: 'water',
+  accessibility: 'body',
+  family: 'people',
 };
 
 interface Props {
@@ -31,74 +41,124 @@ interface Props {
 }
 
 /**
- * Web park map — photo-forward exhibit cards (no native MapView on web).
+ * Interactive illustrated park map — the visitor-facing map experience.
+ * Tappable habitat zones on the custom park artwork + full habitat photo cards.
  */
 export function ParkMap({
-  entrance,
   exhibits,
   services,
   routeCoords,
   onExhibitPress,
   selectedExhibitId,
 }: Props) {
+  const { width } = useWindowDimensions();
+  const mapWidth = Math.min(width - spacing.md * 2, 720);
+  // Artwork is roughly square / slightly tall
+  const mapHeight = mapWidth * 1.05;
   const hasRoute = routeCoords.length > 1;
   const selected = exhibits.find((e) => e.id === selectedExhibitId) ?? null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {selected && getExhibitImageSource(selected.id, selected.imageUrl) ? (
+      <Text style={styles.hint}>Tap a habitat on the map to get directions</Text>
+
+      <View style={[styles.mapFrame, { width: mapWidth, height: mapHeight }]}>
+        <Image source={PARK_MAP} style={styles.mapImage} contentFit="cover" />
+
+        {exhibits.map((ex) => {
+          const spot = MAP_HOTSPOTS[ex.id];
+          if (!spot) return null;
+          const active = selectedExhibitId === ex.id;
+          return (
+            <Pressable
+              key={ex.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Route to ${ex.name}`}
+              onPress={() => onExhibitPress(ex)}
+              style={[
+                styles.hotspot,
+                {
+                  top: spot.top,
+                  left: spot.left,
+                  width: spot.width,
+                  height: spot.height,
+                },
+                active && styles.hotspotActive,
+              ]}
+            >
+              {active ? (
+                <MotiView
+                  from={{ scale: 0.9, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  style={styles.routeBadge}
+                >
+                  <Ionicons name="walk" size={14} color={colors.white} />
+                  <Text style={styles.routeBadgeText}>Routing</Text>
+                </MotiView>
+              ) : null}
+            </Pressable>
+          );
+        })}
+
+        {services.map((svc) => {
+          const spot = SERVICE_HOTSPOTS[svc.id];
+          if (!spot) return null;
+          return (
+            <View
+              key={svc.id}
+              style={[
+                styles.servicePin,
+                {
+                  top: spot.top,
+                  left: spot.left,
+                  backgroundColor: SERVICE_COLORS[svc.type],
+                },
+              ]}
+            >
+              <Ionicons name={SERVICE_ICONS[svc.type]} size={12} color={colors.white} />
+            </View>
+          );
+        })}
+      </View>
+
+      {selected ? (
         <MotiView
-          from={{ opacity: 0.6, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'timing', duration: 280 }}
-          style={styles.featured}
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 250 }}
+          style={styles.selectedCard}
         >
           <ExhibitPhoto
             source={getExhibitImageSource(selected.id, selected.imageUrl)}
-            style={styles.featuredPhoto}
+            style={styles.selectedPhoto}
             overlay
           />
-          <View style={styles.featuredCopy}>
-            <Text style={styles.featuredEyebrow}>Now routing</Text>
-            <Text style={styles.featuredTitle}>{selected.name}</Text>
-            <Text style={styles.featuredBody}>{selected.description}</Text>
+          <View style={styles.selectedCopy}>
+            <Text style={styles.selectedEyebrow}>
+              {hasRoute ? 'Walking route ready' : 'Selected habitat'}
+            </Text>
+            <Text style={styles.selectedTitle}>{selected.name}</Text>
+            <Text style={styles.selectedBody}>{selected.description}</Text>
           </View>
         </MotiView>
-      ) : (
-        <Card style={styles.hero}>
-          <View style={styles.heroRow}>
-            <View style={styles.heroIcon}>
-              <Ionicons name="paw" size={22} color={colors.white} />
-            </View>
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>Meet the animals</Text>
-              <Text style={styles.heroBody}>
-                Tap a habitat photo to preview a walking route from the visitor entrance.
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.entrance}>
-            Entrance · {entrance.latitude.toFixed(4)}, {entrance.longitude.toFixed(4)}
-          </Text>
-        </Card>
-      )}
+      ) : null}
 
       <Text style={styles.section}>Habitats</Text>
       {exhibits.map((ex, index) => {
-        const isSelected = selectedExhibitId === ex.id;
+        const active = selectedExhibitId === ex.id;
         return (
           <MotiView
             key={ex.id}
             from={{ opacity: 0, translateY: 12 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 280, delay: index * 45 }}
+            transition={{ type: 'timing', duration: 280, delay: index * 40 }}
           >
             <Pressable
               onPress={() => onExhibitPress(ex)}
               style={({ pressed }) => [
                 styles.exhibitCard,
-                isSelected && styles.exhibitCardSelected,
-                pressed && { opacity: 0.92 },
+                active && styles.exhibitCardSelected,
+                pressed && { opacity: 0.94 },
               ]}
             >
               <ExhibitPhoto
@@ -107,143 +167,134 @@ export function ParkMap({
               />
               <View style={styles.exhibitBody}>
                 <View style={styles.exhibitTop}>
-                  <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>
-                    {ex.name}
-                  </Text>
+                  <View style={styles.exhibitText}>
+                    <Text style={[styles.cardTitle, active && styles.cardTitleSelected]}>
+                      {ex.name}
+                    </Text>
+                    <Text style={styles.category}>{ex.category}</Text>
+                    <Text style={styles.cardMeta}>{ex.description}</Text>
+                  </View>
                   <Ionicons
-                    name={isSelected ? 'walk' : 'chevron-forward'}
-                    size={18}
-                    color={isSelected ? colors.primary : colors.textMuted}
+                    name={active ? 'walk' : 'chevron-forward'}
+                    size={20}
+                    color={active ? colors.primary : colors.textMuted}
                   />
                 </View>
-                <Text style={styles.category}>{ex.category}</Text>
-                <Text style={styles.cardMeta}>{ex.description}</Text>
               </View>
             </Pressable>
           </MotiView>
         );
       })}
-
-      <Text style={styles.section}>Guest services</Text>
-      {services.map((svc) => (
-        <Card key={svc.id} accentBorder={SERVICE_COLORS[svc.type]} style={styles.serviceCard}>
-          <View style={styles.serviceRow}>
-            <Ionicons name={SERVICE_ICONS[svc.type]} size={18} color={SERVICE_COLORS[svc.type]} />
-            <View style={styles.serviceCopy}>
-              <Text style={styles.cardTitle}>{svc.name}</Text>
-              <Text style={styles.cardMeta}>{svc.type}</Text>
-            </View>
-          </View>
-        </Card>
-      ))}
-
-      {hasRoute ? (
-        <MotiView
-          from={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'timing', duration: 250 }}
-          style={styles.routeBox}
-        >
-          <View style={styles.routeHeader}>
-            <Ionicons name="git-commit-outline" size={18} color={colors.warning} />
-            <Text style={styles.routeTitle}>Suggested walking path</Text>
-          </View>
-          <Text style={styles.routeHint}>
-            Follow the path from the entrance to your selected exhibit.
-          </Text>
-          {routeCoords.map((c, i) => (
-            <View key={`${c.latitude}-${i}`} style={styles.routeStep}>
-              <View style={styles.stepDot}>
-                <Text style={styles.stepNum}>{i + 1}</Text>
-              </View>
-              <Text style={styles.routePoint}>
-                {i === 0
-                  ? 'Start at visitor entrance'
-                  : i === routeCoords.length - 1
-                    ? `Arrive at ${selected?.name ?? 'exhibit'}`
-                    : 'Continue along the path'}
-              </Text>
-            </View>
-          ))}
-        </MotiView>
-      ) : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, paddingBottom: spacing.xxl },
-  featured: {
-    height: 210,
+  content: {
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+    alignItems: 'center',
+  },
+  hint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  mapFrame: {
     borderRadius: radii.lg,
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primaryLight,
+    backgroundColor: colors.primarySoft,
+    alignSelf: 'center',
   },
-  featuredPhoto: {
+  mapImage: {
+    ...StyleSheet.absoluteFill,
+  },
+  hotspot: {
+    position: 'absolute',
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  hotspotActive: {
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(249, 168, 37, 0.18)',
+  },
+  routeBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+  },
+  routeBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontFamily: typography.label.fontFamily,
+  },
+  servicePin: {
+    position: 'absolute',
+    width: 26,
+    height: 26,
+    marginLeft: -13,
+    marginTop: -13,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  selectedCard: {
+    width: '100%',
+    marginTop: spacing.lg,
+    height: 220,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+  },
+  selectedPhoto: {
     ...StyleSheet.absoluteFill,
     borderRadius: radii.lg,
   },
-  featuredCopy: {
+  selectedCopy: {
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
     bottom: spacing.lg,
   },
-  featuredEyebrow: {
+  selectedEyebrow: {
     ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.9)',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
   },
-  featuredTitle: {
+  selectedTitle: {
     fontFamily: typography.display.fontFamily,
     fontSize: 26,
     color: colors.white,
     marginTop: 2,
   },
-  featuredBody: {
+  selectedBody: {
     ...typography.body,
     color: 'rgba(255,255,255,0.92)',
     marginTop: 4,
   },
-  hero: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primaryDark,
-    marginBottom: spacing.md,
-  },
-  heroRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
-  heroIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroCopy: { flex: 1 },
-  heroTitle: {
-    fontFamily: typography.section.fontFamily,
-    fontSize: 17,
-    color: colors.white,
-  },
-  heroBody: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
-  },
-  entrance: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: spacing.md,
-  },
   section: {
     ...typography.section,
     color: colors.primary,
+    alignSelf: 'flex-start',
+    marginTop: spacing.xl,
     marginBottom: spacing.sm,
-    marginTop: spacing.sm,
   },
   exhibitCard: {
+    width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
     marginBottom: spacing.md,
@@ -253,9 +304,11 @@ const styles = StyleSheet.create({
   },
   exhibitCardSelected: {
     borderColor: colors.primary,
+    borderWidth: 2,
   },
   exhibitPhoto: {
-    height: 150,
+    width: '100%',
+    height: 220,
     borderRadius: 0,
   },
   exhibitBody: {
@@ -263,13 +316,14 @@ const styles = StyleSheet.create({
   },
   exhibitTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.sm,
   },
+  exhibitText: { flex: 1 },
   cardTitle: {
-    ...typography.bodyMedium,
     fontFamily: typography.section.fontFamily,
-    fontSize: 16,
+    fontSize: 17,
+    color: colors.text,
   },
   cardTitleSelected: { color: colors.primary },
   category: {
@@ -281,58 +335,5 @@ const styles = StyleSheet.create({
   cardMeta: {
     ...typography.caption,
     marginTop: 4,
-  },
-  serviceCard: {
-    marginBottom: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  serviceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  serviceCopy: { flex: 1 },
-  routeBox: {
-    marginTop: spacing.md,
-    backgroundColor: colors.warningSoft,
-    borderRadius: radii.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: '#FFE0B2',
-  },
-  routeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  routeTitle: {
-    fontFamily: typography.section.fontFamily,
-    color: colors.warning,
-    fontSize: 15,
-  },
-  routeHint: {
-    ...typography.caption,
-    marginBottom: spacing.md,
-  },
-  routeStep: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  stepDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.warning,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNum: {
-    color: colors.white,
-    fontSize: 11,
-    fontFamily: typography.label.fontFamily,
-  },
-  routePoint: {
-    ...typography.body,
-    color: colors.text,
-    flex: 1,
   },
 });
