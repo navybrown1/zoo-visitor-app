@@ -9,6 +9,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-navigation/bottom-tabs": "^7.18.8",
     "@react-navigation/native": "^7.3.8",
+    "babel-preset-expo": "~57.0.0",
     "expo": "~57.0.4",
     "expo-camera": "~57.0.1",
     "expo-font": "~57.0.0",
