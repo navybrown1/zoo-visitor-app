@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   thumbChip: {
-    width: 92,
+    width: 104,
     alignItems: 'center',
     borderRadius: radii.md,
     padding: 6,
@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
   },
   thumb: {
-    width: 72,
-    height: 72,
+    width: 88,
+    height: 88,
     borderRadius: radii.sm,
     marginBottom: 6,
   },
