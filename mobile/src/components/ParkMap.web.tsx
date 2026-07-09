@@ -5,9 +5,9 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  Image as RNImage,
   useWindowDimensions,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import type { Exhibit, GuestService, LatLng } from '../types';
@@ -18,7 +18,7 @@ import { MAP_HOTSPOTS, SERVICE_HOTSPOTS } from '../data/mapHotspots';
 
 const PARK_MAP = require('../../assets/map/park-map.png');
 /** park-map.png is 1024×768 */
-const MAP_ASPECT = 768 / 1024;
+const MAP_ASPECT = 0.75;
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
   restroom: colors.service.restroom,
@@ -43,8 +43,7 @@ interface Props {
 }
 
 /**
- * Interactive illustrated park map — visitor-facing map experience.
- * Full park artwork with tappable habitat zones + uncropped habitat photos.
+ * Interactive illustrated park map — full artwork, tappable habitats, full animal photos.
  */
 export function ParkMap({
   exhibits,
@@ -54,8 +53,9 @@ export function ParkMap({
   selectedExhibitId,
 }: Props) {
   const { width: windowWidth } = useWindowDimensions();
-  const mapWidth = Math.min(windowWidth - spacing.md * 2, 900);
-  const mapHeight = mapWidth * MAP_ASPECT;
+  // Keep map within the content column; never wider than viewport padding
+  const mapWidth = Math.max(280, Math.min(windowWidth - spacing.lg * 2, 720));
+  const mapHeight = Math.round(mapWidth * MAP_ASPECT);
   const hasRoute = routeCoords.length > 1;
   const selected = exhibits.find((e) => e.id === selectedExhibitId) ?? null;
 
@@ -64,10 +64,11 @@ export function ParkMap({
       <Text style={styles.hint}>Tap a habitat on the map to get directions</Text>
 
       <View style={[styles.mapFrame, { width: mapWidth, height: mapHeight }]}>
-        <Image
+        <RNImage
           source={PARK_MAP}
           style={{ width: mapWidth, height: mapHeight }}
-          contentFit="fill"
+          resizeMode="stretch"
+          accessibilityLabel="Zoo park map"
         />
 
         {exhibits.map((ex) => {
@@ -92,14 +93,10 @@ export function ParkMap({
               ]}
             >
               {active ? (
-                <MotiView
-                  from={{ scale: 0.9, opacity: 0.5 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  style={styles.routeBadge}
-                >
+                <View style={styles.routeBadge}>
                   <Ionicons name="walk" size={14} color={colors.white} />
                   <Text style={styles.routeBadgeText}>Routing</Text>
-                </MotiView>
+                </View>
               ) : null}
             </Pressable>
           );
@@ -111,6 +108,7 @@ export function ParkMap({
           return (
             <View
               key={svc.id}
+              pointerEvents="none"
               style={[
                 styles.servicePin,
                 {
@@ -198,14 +196,15 @@ export function ParkMap({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
     alignItems: 'center',
   },
   hint: {
     ...typography.caption,
     color: colors.textSecondary,
-    alignSelf: 'stretch',
+    width: '100%',
     marginBottom: spacing.sm,
   },
   mapFrame: {
@@ -213,7 +212,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.primaryLight,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#E8F5E9',
     position: 'relative',
   },
   hotspot: {
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
   },
   hotspotActive: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(249, 168, 37, 0.18)',
+    backgroundColor: 'rgba(249, 168, 37, 0.2)',
   },
   routeBadge: {
     position: 'absolute',
@@ -307,7 +306,6 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderWidth: 2,
   },
-  /** Match 1024×768 animal photos so cover does not slice faces */
   exhibitPhoto: {
     width: '100%',
     aspectRatio: 4 / 3,
