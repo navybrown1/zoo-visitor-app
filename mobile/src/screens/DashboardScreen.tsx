@@ -18,6 +18,7 @@ import { WeatherBanner } from '../components/WeatherBanner';
 import { ParkingWidget } from '../components/ParkingWidget';
 import { NotificationListener } from '../components/NotificationListener';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { getExhibitImageSource } from '../data/exhibitImages';
 import { colors, radii, spacing, typography } from '../theme';
 
 /**
@@ -91,7 +92,7 @@ export function DashboardScreen() {
                   onPress={() => navigation.navigate('Map')}
                 >
                   <Image
-                    source={{ uri: ex.imageUrl }}
+                    source={getExhibitImageSource(ex.id, ex.imageUrl)}
                     style={styles.stripImage}
                     contentFit="cover"
                     transition={250}

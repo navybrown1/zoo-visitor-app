@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Image } from 'expo-image';
 import type { Exhibit, GuestService, LatLng } from '../types';
+import { getExhibitImageSource } from '../data/exhibitImages';
 import { colors, radii, typography } from '../theme';
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
@@ -51,20 +52,28 @@ export function ParkMap({
           pinColor={selectedExhibitId === ex.id ? colors.primary : colors.accent}
           onPress={() => onExhibitPress(ex)}
         >
-          {ex.imageUrl ? (
+          {getExhibitImageSource(ex.id, ex.imageUrl) ? (
             <View
               style={[
                 styles.photoMarker,
                 selectedExhibitId === ex.id && styles.photoMarkerSelected,
               ]}
             >
-              <Image source={{ uri: ex.imageUrl }} style={styles.markerImage} contentFit="cover" />
+              <Image
+                source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                style={styles.markerImage}
+                contentFit="cover"
+              />
             </View>
           ) : null}
           <Callout onPress={() => onExhibitPress(ex)}>
             <View style={styles.callout}>
-              {ex.imageUrl ? (
-                <Image source={{ uri: ex.imageUrl }} style={styles.calloutImage} contentFit="cover" />
+              {getExhibitImageSource(ex.id, ex.imageUrl) ? (
+                <Image
+                  source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                  style={styles.calloutImage}
+                  contentFit="cover"
+                />
               ) : null}
               <Text style={styles.calloutTitle}>{ex.name}</Text>
               <Text style={styles.calloutBody}>{ex.description}</Text>

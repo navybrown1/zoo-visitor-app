@@ -1,10 +1,12 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { Image } from 'expo-image';
+import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radii } from '../theme';
 
 interface Props {
+  source?: ImageSource;
+  /** @deprecated prefer `source` — kept for simple remote-only callers */
   uri?: string;
   style?: ViewStyle;
   /** Soft gradient scrim for text overlays */
@@ -12,16 +14,17 @@ interface Props {
 }
 
 /** Zoo animal / habitat photo with graceful placeholder. */
-export function ExhibitPhoto({ uri, style, overlay = false }: Props) {
+export function ExhibitPhoto({ source, uri, style, overlay = false }: Props) {
+  const resolved = source ?? (uri ? { uri } : undefined);
+
   return (
     <View style={[styles.wrap, style]}>
       <Image
-        source={uri ? { uri } : undefined}
+        source={resolved}
         style={styles.image}
         contentFit="cover"
         transition={280}
         placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-        recyclingKey={uri}
       />
       {overlay ? (
         <LinearGradient
@@ -29,7 +32,7 @@ export function ExhibitPhoto({ uri, style, overlay = false }: Props) {
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      {!uri ? <View style={styles.fallback} /> : null}
+      {!resolved ? <View style={styles.fallback} /> : null}
     </View>
   );
 }

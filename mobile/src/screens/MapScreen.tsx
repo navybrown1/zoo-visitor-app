@@ -17,6 +17,7 @@ import {
   type ServiceFilters,
 } from '../components/ServiceFilterToggles';
 import { ParkMap } from '../components/ParkMap';
+import { getExhibitImageSource } from '../data/exhibitImages';
 import { colors, radii, spacing, typography } from '../theme';
 
 const DEFAULT_REGION = {
@@ -137,8 +138,12 @@ export function MapScreen() {
                   pressed && { opacity: 0.88 },
                 ]}
               >
-                {ex.imageUrl ? (
-                  <Image source={{ uri: ex.imageUrl }} style={styles.thumb} contentFit="cover" />
+                {getExhibitImageSource(ex.id, ex.imageUrl) ? (
+                  <Image
+                    source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                    style={styles.thumb}
+                    contentFit="cover"
+                  />
                 ) : (
                   <View style={[styles.thumb, styles.thumbFallback]} />
                 )}

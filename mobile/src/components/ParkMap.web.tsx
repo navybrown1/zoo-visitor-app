@@ -6,6 +6,7 @@ import type { Exhibit, GuestService, LatLng } from '../types';
 import { colors, radii, spacing, typography } from '../theme';
 import { Card } from './ui/Card';
 import { ExhibitPhoto } from './ExhibitPhoto';
+import { getExhibitImageSource } from '../data/exhibitImages';
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
   restroom: colors.service.restroom,
@@ -45,14 +46,18 @@ export function ParkMap({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {selected?.imageUrl ? (
+      {selected && getExhibitImageSource(selected.id, selected.imageUrl) ? (
         <MotiView
           from={{ opacity: 0.6, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'timing', duration: 280 }}
           style={styles.featured}
         >
-          <ExhibitPhoto uri={selected.imageUrl} style={styles.featuredPhoto} overlay />
+          <ExhibitPhoto
+            source={getExhibitImageSource(selected.id, selected.imageUrl)}
+            style={styles.featuredPhoto}
+            overlay
+          />
           <View style={styles.featuredCopy}>
             <Text style={styles.featuredEyebrow}>Now routing</Text>
             <Text style={styles.featuredTitle}>{selected.name}</Text>
@@ -96,7 +101,10 @@ export function ParkMap({
                 pressed && { opacity: 0.92 },
               ]}
             >
-              <ExhibitPhoto uri={ex.imageUrl} style={styles.exhibitPhoto} />
+              <ExhibitPhoto
+                source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                style={styles.exhibitPhoto}
+              />
               <View style={styles.exhibitBody}>
                 <View style={styles.exhibitTop}>
                   <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>
