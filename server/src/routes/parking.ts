@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import parking from '../data/parking.json';
+import { parking } from '../data/parking';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import notifications from '../data/notifications.json';
+import { notifications } from '../data/notifications';
 
 const router = Router();
 

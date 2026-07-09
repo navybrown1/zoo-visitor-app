@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import weather from '../data/weather.json';
+import { weather } from '../data/weather';
 
 const router = Router();
 

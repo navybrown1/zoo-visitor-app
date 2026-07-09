@@ -8,3 +8,5 @@ mobile/dist/
 *.log
 .env
 .DS_Store
+
+.vercel

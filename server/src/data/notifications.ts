@@ -1,0 +1,20 @@
+export const notifications = [
+  {
+    id: 'notif-1',
+    type: 'lost_child' as const,
+    title: 'Lost Child Alert',
+    message:
+      'Looking for a child (age 6, blue shirt, name Alex) last seen near Penguin Coast. Report to any staff member.',
+    createdAt: '2026-07-09T13:45:00.000Z',
+    active: true,
+  },
+  {
+    id: 'notif-2',
+    type: 'emergency' as const,
+    title: 'Weather Shelter Notice',
+    message:
+      'Brief thunderstorm possible after 3 PM. Follow staff directions to indoor shelters if sirens sound.',
+    createdAt: '2026-07-09T12:30:00.000Z',
+    active: true,
+  },
+];

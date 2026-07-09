@@ -1,10 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import ticketsRouter from './routes/tickets.js';
-import parkingRouter from './routes/parking.js';
-import notificationsRouter from './routes/notifications.js';
-import weatherRouter from './routes/weather.js';
-import mapRouter from './routes/map.js';
+import ticketsRouter from './routes/tickets';
+import parkingRouter from './routes/parking';
+import notificationsRouter from './routes/notifications';
+import weatherRouter from './routes/weather';
+import mapRouter from './routes/map';
 
 /** Shared Express app — used by local server and Vercel serverless. */
 const app = express();

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import exhibits from '../data/exhibits.json';
-import services from '../data/services.json';
-import routes from '../data/routes.json';
+import { exhibits } from '../data/exhibits';
+import { services } from '../data/services';
+import { routes } from '../data/routes';
 
 const router = Router();
 
