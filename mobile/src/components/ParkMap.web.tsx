@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   Pressable,
   ScrollView,
   Image as RNImage,
-  useWindowDimensions,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -17,8 +17,8 @@ import { getExhibitImageSource } from '../data/exhibitImages';
 import { MAP_HOTSPOTS, SERVICE_HOTSPOTS } from '../data/mapHotspots';
 
 const PARK_MAP = require('../../assets/map/park-map.png');
-/** park-map.png is 1024×768 */
-const MAP_ASPECT = 0.75;
+/** park-map.png is 1024×768 → 4:3 */
+const MAP_ASPECT = 4 / 3;
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
   restroom: colors.service.restroom,
@@ -44,6 +44,7 @@ interface Props {
 
 /**
  * Interactive illustrated park map — full artwork, tappable habitats, full animal photos.
+ * Uses onLayout width so the map fits the real container (not a mismatched window width).
  */
 export function ParkMap({
   exhibits,
@@ -52,143 +53,154 @@ export function ParkMap({
   onExhibitPress,
   selectedExhibitId,
 }: Props) {
-  const { width: windowWidth } = useWindowDimensions();
-  // Keep map within the content column; never wider than viewport padding
-  const mapWidth = Math.max(280, Math.min(windowWidth - spacing.lg * 2, 720));
-  const mapHeight = Math.round(mapWidth * MAP_ASPECT);
+  const [contentWidth, setContentWidth] = useState(0);
+  const mapWidth = contentWidth > 0 ? contentWidth : 320;
+  const mapHeight = Math.round(mapWidth / MAP_ASPECT);
   const hasRoute = routeCoords.length > 1;
   const selected = exhibits.find((e) => e.id === selectedExhibitId) ?? null;
 
+  const onContentLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && Math.abs(w - contentWidth) > 1) {
+      setContentWidth(w);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.hint}>Tap a habitat on the map to get directions</Text>
+      <View style={styles.column} onLayout={onContentLayout}>
+        <Text style={styles.hint}>Tap a habitat on the map to get directions</Text>
 
-      <View style={[styles.mapFrame, { width: mapWidth, height: mapHeight }]}>
-        <RNImage
-          source={PARK_MAP}
-          style={{ width: mapWidth, height: mapHeight }}
-          resizeMode="stretch"
-          accessibilityLabel="Zoo park map"
-        />
+        {contentWidth > 0 ? (
+          <View style={[styles.mapFrame, { width: mapWidth, height: mapHeight }]}>
+            <RNImage
+              source={PARK_MAP}
+              style={{ width: mapWidth, height: mapHeight }}
+              resizeMode="stretch"
+              accessibilityLabel="Zoo park map"
+            />
 
-        {exhibits.map((ex) => {
-          const spot = MAP_HOTSPOTS[ex.id];
-          if (!spot) return null;
+            {exhibits.map((ex) => {
+              const spot = MAP_HOTSPOTS[ex.id];
+              if (!spot) return null;
+              const active = selectedExhibitId === ex.id;
+              return (
+                <Pressable
+                  key={ex.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Route to ${ex.name}`}
+                  onPress={() => onExhibitPress(ex)}
+                  style={[
+                    styles.hotspot,
+                    {
+                      top: spot.top,
+                      left: spot.left,
+                      width: spot.width,
+                      height: spot.height,
+                    },
+                    active && styles.hotspotActive,
+                  ]}
+                >
+                  {active ? (
+                    <View style={styles.routeBadge}>
+                      <Ionicons name="walk" size={14} color={colors.white} />
+                      <Text style={styles.routeBadgeText}>Routing</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+
+            {services.map((svc) => {
+              const spot = SERVICE_HOTSPOTS[svc.id];
+              if (!spot) return null;
+              return (
+                <View
+                  key={svc.id}
+                  pointerEvents="none"
+                  style={[
+                    styles.servicePin,
+                    {
+                      top: spot.top,
+                      left: spot.left,
+                      backgroundColor: SERVICE_COLORS[svc.type],
+                    },
+                  ]}
+                >
+                  <Ionicons name={SERVICE_ICONS[svc.type]} size={12} color={colors.white} />
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.mapPlaceholder} />
+        )}
+
+        {selected ? (
+          <MotiView
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 250 }}
+            style={styles.selectedCard}
+          >
+            <ExhibitPhoto
+              source={getExhibitImageSource(selected.id, selected.imageUrl)}
+              style={styles.selectedPhoto}
+              overlay
+            />
+            <View style={styles.selectedCopy}>
+              <Text style={styles.selectedEyebrow}>
+                {hasRoute ? 'Walking route ready' : 'Selected habitat'}
+              </Text>
+              <Text style={styles.selectedTitle}>{selected.name}</Text>
+              <Text style={styles.selectedBody}>{selected.description}</Text>
+            </View>
+          </MotiView>
+        ) : null}
+
+        <Text style={styles.section}>Habitats</Text>
+        {exhibits.map((ex, index) => {
           const active = selectedExhibitId === ex.id;
           return (
-            <Pressable
+            <MotiView
               key={ex.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Route to ${ex.name}`}
-              onPress={() => onExhibitPress(ex)}
-              style={[
-                styles.hotspot,
-                {
-                  top: spot.top,
-                  left: spot.left,
-                  width: spot.width,
-                  height: spot.height,
-                },
-                active && styles.hotspotActive,
-              ]}
+              from={{ opacity: 0, translateY: 12 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 280, delay: index * 40 }}
             >
-              {active ? (
-                <View style={styles.routeBadge}>
-                  <Ionicons name="walk" size={14} color={colors.white} />
-                  <Text style={styles.routeBadgeText}>Routing</Text>
+              <Pressable
+                onPress={() => onExhibitPress(ex)}
+                style={({ pressed }) => [
+                  styles.exhibitCard,
+                  active && styles.exhibitCardSelected,
+                  pressed && { opacity: 0.94 },
+                ]}
+              >
+                <ExhibitPhoto
+                  source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                  style={styles.exhibitPhoto}
+                />
+                <View style={styles.exhibitBody}>
+                  <View style={styles.exhibitTop}>
+                    <View style={styles.exhibitText}>
+                      <Text style={[styles.cardTitle, active && styles.cardTitleSelected]}>
+                        {ex.name}
+                      </Text>
+                      <Text style={styles.category}>{ex.category}</Text>
+                      <Text style={styles.cardMeta}>{ex.description}</Text>
+                    </View>
+                    <Ionicons
+                      name={active ? 'walk' : 'chevron-forward'}
+                      size={20}
+                      color={active ? colors.primary : colors.textMuted}
+                    />
+                  </View>
                 </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
-
-        {services.map((svc) => {
-          const spot = SERVICE_HOTSPOTS[svc.id];
-          if (!spot) return null;
-          return (
-            <View
-              key={svc.id}
-              pointerEvents="none"
-              style={[
-                styles.servicePin,
-                {
-                  top: spot.top,
-                  left: spot.left,
-                  backgroundColor: SERVICE_COLORS[svc.type],
-                },
-              ]}
-            >
-              <Ionicons name={SERVICE_ICONS[svc.type]} size={12} color={colors.white} />
-            </View>
+              </Pressable>
+            </MotiView>
           );
         })}
       </View>
-
-      {selected ? (
-        <MotiView
-          from={{ opacity: 0, translateY: 10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 250 }}
-          style={[styles.selectedCard, { width: mapWidth }]}
-        >
-          <ExhibitPhoto
-            source={getExhibitImageSource(selected.id, selected.imageUrl)}
-            style={styles.selectedPhoto}
-            overlay
-          />
-          <View style={styles.selectedCopy}>
-            <Text style={styles.selectedEyebrow}>
-              {hasRoute ? 'Walking route ready' : 'Selected habitat'}
-            </Text>
-            <Text style={styles.selectedTitle}>{selected.name}</Text>
-            <Text style={styles.selectedBody}>{selected.description}</Text>
-          </View>
-        </MotiView>
-      ) : null}
-
-      <Text style={[styles.section, { width: mapWidth }]}>Habitats</Text>
-      {exhibits.map((ex, index) => {
-        const active = selectedExhibitId === ex.id;
-        return (
-          <MotiView
-            key={ex.id}
-            from={{ opacity: 0, translateY: 12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 280, delay: index * 40 }}
-            style={{ width: mapWidth }}
-          >
-            <Pressable
-              onPress={() => onExhibitPress(ex)}
-              style={({ pressed }) => [
-                styles.exhibitCard,
-                active && styles.exhibitCardSelected,
-                pressed && { opacity: 0.94 },
-              ]}
-            >
-              <ExhibitPhoto
-                source={getExhibitImageSource(ex.id, ex.imageUrl)}
-                style={styles.exhibitPhoto}
-              />
-              <View style={styles.exhibitBody}>
-                <View style={styles.exhibitTop}>
-                  <View style={styles.exhibitText}>
-                    <Text style={[styles.cardTitle, active && styles.cardTitleSelected]}>
-                      {ex.name}
-                    </Text>
-                    <Text style={styles.category}>{ex.category}</Text>
-                    <Text style={styles.cardMeta}>{ex.description}</Text>
-                  </View>
-                  <Ionicons
-                    name={active ? 'walk' : 'chevron-forward'}
-                    size={20}
-                    color={active ? colors.primary : colors.textMuted}
-                  />
-                </View>
-              </View>
-            </Pressable>
-          </MotiView>
-        );
-      })}
     </ScrollView>
   );
 }
@@ -196,15 +208,18 @@ export function ParkMap({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
-    alignItems: 'center',
+  },
+  column: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   hint: {
     ...typography.caption,
     color: colors.textSecondary,
-    width: '100%',
     marginBottom: spacing.sm,
   },
   mapFrame: {
@@ -214,6 +229,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryLight,
     backgroundColor: '#E8F5E9',
     position: 'relative',
+  },
+  mapPlaceholder: {
+    width: '100%',
+    aspectRatio: MAP_ASPECT,
+    borderRadius: radii.lg,
+    backgroundColor: colors.primarySoft,
   },
   hotspot: {
     position: 'absolute',
@@ -256,6 +277,7 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     marginTop: spacing.lg,
+    width: '100%',
     aspectRatio: 4 / 3,
     borderRadius: radii.lg,
     overflow: 'hidden',
