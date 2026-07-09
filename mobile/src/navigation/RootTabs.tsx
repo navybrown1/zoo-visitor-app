@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +7,7 @@ import { MapScreen } from '../screens/MapScreen';
 import { TicketsScreen } from '../screens/TicketsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { StaffScanScreen } from '../screens/StaffScanScreen';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 import { colors, fonts } from '../theme';
 
 export type RootTabParamList = {
@@ -39,8 +41,11 @@ const ICONS: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = {
 
 /**
  * Core Sprint 1 navigation: Map · Tickets · Dashboard · Staff
+ * Desktop web uses a wider top header + roomier tab bar.
  */
 export function RootTabs() {
+  const isDesktop = useIsDesktop();
+
   return (
     <NavigationContainer theme={navTheme}>
       <Tab.Navigator
@@ -49,24 +54,31 @@ export function RootTabs() {
             backgroundColor: colors.primary,
             shadowOpacity: 0,
             elevation: 0,
+            ...(isDesktop && Platform.OS === 'web'
+              ? { height: 64 }
+              : null),
           },
           headerTintColor: colors.white,
           headerTitleStyle: {
             fontFamily: fonts.displaySemi,
-            fontSize: 18,
+            fontSize: isDesktop ? 20 : 18,
           },
+          headerTitleAlign: isDesktop ? 'left' : 'center',
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.border,
-            height: 62,
-            paddingBottom: 8,
-            paddingTop: 6,
+            height: isDesktop ? 68 : 62,
+            paddingBottom: isDesktop ? 10 : 8,
+            paddingTop: isDesktop ? 8 : 6,
+            ...(isDesktop && Platform.OS === 'web'
+              ? { paddingHorizontal: 48 }
+              : null),
           },
           tabBarLabelStyle: {
             fontFamily: fonts.bodyMedium,
-            fontSize: 11,
+            fontSize: isDesktop ? 12 : 11,
           },
           tabBarIcon: ({ color, size, focused }) => {
             const base = ICONS[route.name as keyof RootTabParamList];
@@ -74,7 +86,7 @@ export function RootTabs() {
             return (
               <Ionicons
                 name={focused ? base : outline}
-                size={size}
+                size={isDesktop ? size + 2 : size}
                 color={color}
               />
             );

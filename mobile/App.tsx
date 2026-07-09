@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,7 +15,7 @@ import { colors } from './src/theme';
 
 /**
  * Zoo Visitor App — Sprint 1 MVP entry point.
- * Features: F001, F002, F006, F009, F010, F013, F014
+ * Full-width website on desktop; native mobile on device.
  */
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -43,12 +43,10 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <View style={styles.shell}>
-        <SafeAreaProvider>
-          <StatusBar style="light" />
-          <RootTabs />
-        </SafeAreaProvider>
-      </View>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <RootTabs />
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
@@ -56,27 +54,7 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Platform.OS === 'web' ? '#0D3B12' : colors.background,
-    ...(Platform.OS === 'web'
-      ? ({
-          alignItems: 'center',
-          justifyContent: 'center',
-        } as const)
-      : null),
-  },
-  shell: {
-    flex: 1,
-    width: '100%',
     backgroundColor: colors.background,
-    ...(Platform.OS === 'web'
-      ? ({
-          maxWidth: 430,
-          width: '100%',
-          maxHeight: '100%',
-          overflow: 'hidden',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
-        } as const)
-      : null),
   },
   boot: {
     flex: 1,

@@ -23,6 +23,7 @@ import { api } from '../services/api';
 import type { Ticket } from '../types';
 import { Button } from '../components/ui/Button';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { PageContainer } from '../components/ui/PageContainer';
 import { Toast } from '../components/ui/Toast';
 import { colors, radii, spacing, typography } from '../theme';
 
@@ -129,108 +130,110 @@ export function StaffScanScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title="Staff Entry Scan"
-        subtitle={
-          isWeb
-            ? 'Paste a QR payload from the Tickets wallet'
-            : 'Align the QR inside the frame to validate entry'
-        }
-      />
-
-      {!isWeb && (
-        <View style={styles.cameraWrap}>
-          {scanning ? (
-            <>
-              <CameraView
-                style={styles.camera}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={onBarcode}
-              />
-              <View style={styles.reticle} pointerEvents="none">
-                <View style={[styles.corner, styles.tl]} />
-                <View style={[styles.corner, styles.tr]} />
-                <View style={[styles.corner, styles.bl]} />
-                <View style={[styles.corner, styles.br]} />
-                <Animated.View style={[styles.scanLine, scanLineStyle]} />
-              </View>
-            </>
-          ) : (
-            <View style={styles.paused}>
-              <Ionicons name="checkmark-done-outline" size={36} color={colors.white} />
-              <Text style={styles.pausedText}>Scanner paused</Text>
-              <Button
-                label="Scan next ticket"
-                onPress={() => {
-                  setLastResult(null);
-                  setScanning(true);
-                }}
-                style={styles.resumeBtn}
-              />
-            </View>
-          )}
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.flash,
-              flashStyle,
-              {
-                backgroundColor: lastResult?.valid ? colors.success : colors.danger,
-              },
-            ]}
-          />
-          {busy && (
-            <View style={styles.busyOverlay}>
-              <ActivityIndicator color={colors.white} size="large" />
-            </View>
-          )}
-        </View>
-      )}
-
-      <View style={styles.manual}>
-        <Text style={styles.label}>Manual QR payload</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="ZOO-TICKET:..."
-          placeholderTextColor={colors.textMuted}
-          value={manualCode}
-          onChangeText={setManualCode}
-          autoCapitalize="none"
+    <PageContainer maxWidth={720}>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Staff Entry Scan"
+          subtitle={
+            isWeb
+              ? 'Paste a QR payload from the Tickets wallet'
+              : 'Align the QR inside the frame to validate entry'
+          }
         />
-        <Button
-          label={busy ? 'Validating…' : 'Validate'}
-          onPress={() => validate(manualCode)}
-          loading={busy}
-          disabled={busy}
+
+        {!isWeb && (
+          <View style={styles.cameraWrap}>
+            {scanning ? (
+              <>
+                <CameraView
+                  style={styles.camera}
+                  facing="back"
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  onBarcodeScanned={onBarcode}
+                />
+                <View style={styles.reticle} pointerEvents="none">
+                  <View style={[styles.corner, styles.tl]} />
+                  <View style={[styles.corner, styles.tr]} />
+                  <View style={[styles.corner, styles.bl]} />
+                  <View style={[styles.corner, styles.br]} />
+                  <Animated.View style={[styles.scanLine, scanLineStyle]} />
+                </View>
+              </>
+            ) : (
+              <View style={styles.paused}>
+                <Ionicons name="checkmark-done-outline" size={36} color={colors.white} />
+                <Text style={styles.pausedText}>Scanner paused</Text>
+                <Button
+                  label="Scan next ticket"
+                  onPress={() => {
+                    setLastResult(null);
+                    setScanning(true);
+                  }}
+                  style={styles.resumeBtn}
+                />
+              </View>
+            )}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.flash,
+                flashStyle,
+                {
+                  backgroundColor: lastResult?.valid ? colors.success : colors.danger,
+                },
+              ]}
+            />
+            {busy && (
+              <View style={styles.busyOverlay}>
+                <ActivityIndicator color={colors.white} size="large" />
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.manual}>
+          <Text style={styles.label}>Manual QR payload</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="ZOO-TICKET:..."
+            placeholderTextColor={colors.textMuted}
+            value={manualCode}
+            onChangeText={setManualCode}
+            autoCapitalize="none"
+          />
+          <Button
+            label={busy ? 'Validating…' : 'Validate'}
+            onPress={() => validate(manualCode)}
+            loading={busy}
+            disabled={busy}
+          />
+        </View>
+
+        {lastResult && (
+          <MotiView
+            from={{ opacity: 0, translateY: 8 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            style={[styles.result, lastResult.valid ? styles.ok : styles.bad]}
+          >
+            <Text style={styles.resultTitle}>{lastResult.valid ? 'VALID' : 'INVALID'}</Text>
+            <Text style={styles.resultMsg}>{lastResult.message}</Text>
+            {lastResult.ticket && (
+              <Text style={styles.resultMeta}>
+                {lastResult.ticket.visitorName} · {lastResult.ticket.type} ·{' '}
+                {lastResult.ticket.status}
+              </Text>
+            )}
+          </MotiView>
+        )}
+
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          tone={toast.tone}
+          onHide={() => setToast((t) => ({ ...t, visible: false }))}
         />
       </View>
-
-      {lastResult && (
-        <MotiView
-          from={{ opacity: 0, translateY: 8 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          style={[styles.result, lastResult.valid ? styles.ok : styles.bad]}
-        >
-          <Text style={styles.resultTitle}>{lastResult.valid ? 'VALID' : 'INVALID'}</Text>
-          <Text style={styles.resultMsg}>{lastResult.message}</Text>
-          {lastResult.ticket && (
-            <Text style={styles.resultMeta}>
-              {lastResult.ticket.visitorName} · {lastResult.ticket.type} ·{' '}
-              {lastResult.ticket.status}
-            </Text>
-          )}
-        </MotiView>
-      )}
-
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        tone={toast.tone}
-        onHide={() => setToast((t) => ({ ...t, visible: false }))}
-      />
-    </View>
+    </PageContainer>
   );
 }
 

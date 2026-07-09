@@ -18,7 +18,9 @@ import { WeatherBanner } from '../components/WeatherBanner';
 import { ParkingWidget } from '../components/ParkingWidget';
 import { NotificationListener } from '../components/NotificationListener';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { PageContainer } from '../components/ui/PageContainer';
 import { getExhibitImageSource } from '../data/exhibitImages';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 import { colors, radii, spacing, typography } from '../theme';
 
 /**
@@ -30,6 +32,7 @@ import { colors, radii, spacing, typography } from '../theme';
  */
 export function DashboardScreen() {
   const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const isDesktop = useIsDesktop();
   const [lots, setLots] = useState<ParkingLot[]>([]);
   const [weather, setWeather] = useState<WeatherAlert | null>(null);
   const [exhibits, setExhibits] = useState<Exhibit[]>([]);
@@ -63,56 +66,64 @@ export function DashboardScreen() {
       : 'Parking · Weather · Safety';
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />
-      }
-    >
-      <ScreenHeader title="Visitor Dashboard" subtitle={subtitle} />
+    <PageContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />
+        }
+      >
+        <ScreenHeader title="Visitor Dashboard" subtitle={subtitle} />
 
-      {exhibits.length > 0 ? (
-        <View style={styles.stripSection}>
-          <Text style={styles.stripTitle}>Today at the zoo</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.strip}
-          >
-            {exhibits.map((ex, index) => (
-              <MotiView
-                key={ex.id}
-                from={{ opacity: 0, translateX: 12 }}
-                animate={{ opacity: 1, translateX: 0 }}
-                transition={{ type: 'timing', duration: 300, delay: index * 50 }}
-              >
-                <Pressable
-                  style={styles.stripCard}
-                  onPress={() => navigation.navigate('Map')}
+        {exhibits.length > 0 ? (
+          <View style={styles.stripSection}>
+            <Text style={styles.stripTitle}>Today at the zoo</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.strip}
+            >
+              {exhibits.map((ex, index) => (
+                <MotiView
+                  key={ex.id}
+                  from={{ opacity: 0, translateX: 12 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: 'timing', duration: 300, delay: index * 50 }}
                 >
-                  <Image
-                    source={getExhibitImageSource(ex.id, ex.imageUrl)}
-                    style={styles.stripImage}
-                    contentFit="cover"
-                    transition={250}
-                  />
-                  <View style={styles.stripLabelWrap}>
-                    <Text style={styles.stripLabel} numberOfLines={1}>
-                      {ex.name}
-                    </Text>
-                  </View>
-                </Pressable>
-              </MotiView>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
+                  <Pressable
+                    style={[styles.stripCard, isDesktop && styles.stripCardDesktop]}
+                    onPress={() => navigation.navigate('Map')}
+                  >
+                    <Image
+                      source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                      style={styles.stripImage}
+                      contentFit="cover"
+                      transition={250}
+                    />
+                    <View style={styles.stripLabelWrap}>
+                      <Text style={styles.stripLabel} numberOfLines={1}>
+                        {ex.name}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </MotiView>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
-      <WeatherBanner weather={weather} />
-      <ParkingWidget lots={lots} />
-      <NotificationListener />
-    </ScrollView>
+        <View style={isDesktop ? styles.desktopGrid : undefined}>
+          <View style={isDesktop ? styles.desktopCol : undefined}>
+            <WeatherBanner weather={weather} />
+            <NotificationListener />
+          </View>
+          <View style={isDesktop ? styles.desktopCol : undefined}>
+            <ParkingWidget lots={lots} />
+          </View>
+        </View>
+      </ScrollView>
+    </PageContainer>
   );
 }
 
@@ -139,6 +150,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.primarySoft,
   },
+  stripCardDesktop: {
+    width: 220,
+  },
   stripImage: {
     width: '100%',
     height: '100%',
@@ -156,5 +170,14 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.white,
     fontFamily: typography.label.fontFamily,
+  },
+  desktopGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'flex-start',
+  },
+  desktopCol: {
+    flex: 1,
+    minWidth: 0,
   },
 });

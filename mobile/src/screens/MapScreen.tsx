@@ -18,6 +18,7 @@ import {
 } from '../components/ServiceFilterToggles';
 import { ParkMap } from '../components/ParkMap';
 import { getExhibitImageSource } from '../data/exhibitImages';
+import { useIsDesktop } from '../hooks/useIsDesktop';
 import { colors, radii, spacing, typography } from '../theme';
 
 const DEFAULT_REGION = {
@@ -28,8 +29,10 @@ const DEFAULT_REGION = {
 /**
  * F002 — Interactive park map with mock exhibit routing.
  * F010 — Restroom / accessibility / family service filter toggles.
+ * Desktop: full-width map + side gallery (no phone-frame chrome).
  */
 export function MapScreen() {
+  const isDesktop = useIsDesktop();
   const [mapData, setMapData] = useState<MapPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ServiceFilters>({
@@ -108,7 +111,19 @@ export function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <ServiceFilterToggles filters={filters} onChange={setFilters} />
+      <View style={[styles.toolbar, isDesktop && styles.toolbarDesktop]}>
+        <ServiceFilterToggles filters={filters} onChange={setFilters} />
+        {selectedExhibit && isDesktop ? (
+          <View style={styles.routeBarDesktop}>
+            <Text style={styles.routeText}>
+              {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
+            </Text>
+            <Pressable onPress={clearRoute} hitSlop={8}>
+              <Text style={styles.clearText}>Clear</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
 
       <ParkMap
         entrance={mapData.visitorEntrance}
@@ -120,51 +135,56 @@ export function MapScreen() {
         selectedExhibitId={selectedExhibit?.id}
       />
 
-      <View style={styles.footer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.exhibitRow}
-        >
-          {mapData.exhibits.map((ex) => {
-            const active = selectedExhibit?.id === ex.id;
-            return (
-              <Pressable
-                key={ex.id}
-                onPress={() => routeToExhibit(ex)}
-                style={({ pressed }) => [
-                  styles.thumbChip,
-                  active && styles.thumbChipActive,
-                  pressed && { opacity: 0.88 },
-                ]}
-              >
-                {getExhibitImageSource(ex.id, ex.imageUrl) ? (
-                  <Image
-                    source={getExhibitImageSource(ex.id, ex.imageUrl)}
-                    style={styles.thumb}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View style={[styles.thumb, styles.thumbFallback]} />
-                )}
-                <Text style={[styles.thumbLabel, active && styles.thumbLabelActive]} numberOfLines={1}>
-                  {ex.name}
-                </Text>
+      {!isDesktop ? (
+        <View style={styles.footer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.exhibitRow}
+          >
+            {mapData.exhibits.map((ex) => {
+              const active = selectedExhibit?.id === ex.id;
+              return (
+                <Pressable
+                  key={ex.id}
+                  onPress={() => routeToExhibit(ex)}
+                  style={({ pressed }) => [
+                    styles.thumbChip,
+                    active && styles.thumbChipActive,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                >
+                  {getExhibitImageSource(ex.id, ex.imageUrl) ? (
+                    <Image
+                      source={getExhibitImageSource(ex.id, ex.imageUrl)}
+                      style={styles.thumb}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.thumb, styles.thumbFallback]} />
+                  )}
+                  <Text
+                    style={[styles.thumbLabel, active && styles.thumbLabelActive]}
+                    numberOfLines={1}
+                  >
+                    {ex.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          {selectedExhibit && (
+            <View style={styles.routeBar}>
+              <Text style={styles.routeText}>
+                {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
+              </Text>
+              <Pressable onPress={clearRoute} hitSlop={8}>
+                <Text style={styles.clearText}>Clear</Text>
               </Pressable>
-            );
-          })}
-        </ScrollView>
-        {selectedExhibit && (
-          <View style={styles.routeBar}>
-            <Text style={styles.routeText}>
-              {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
-            </Text>
-            <Pressable onPress={clearRoute} hitSlop={8}>
-              <Text style={styles.clearText}>Clear</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
+            </View>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -173,6 +193,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { ...typography.caption, marginTop: spacing.sm },
+  toolbar: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  toolbarDesktop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: spacing.xl,
+  },
+  routeBarDesktop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
   footer: {
     backgroundColor: colors.surface,
     borderTopWidth: 1,
