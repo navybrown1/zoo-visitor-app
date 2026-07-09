@@ -6,34 +6,36 @@ import { colors, radii } from '../theme';
 
 interface Props {
   source?: ImageSource;
-  /** @deprecated prefer `source` — kept for simple remote-only callers */
   uri?: string;
   style?: ViewStyle;
-  /** Soft gradient scrim for text overlays */
   overlay?: boolean;
 }
 
-/** Zoo animal / habitat photo with graceful placeholder. */
+/**
+ * Zoo animal / habitat photo.
+ * Image is absolutely positioned so web always fills the 4:3 frame (no half-width crop).
+ */
 export function ExhibitPhoto({ source, uri, style, overlay = false }: Props) {
   const resolved = source ?? (uri ? { uri } : undefined);
 
   return (
     <View style={[styles.wrap, style]}>
-      <Image
-        source={resolved}
-        style={styles.image}
-        contentFit="cover"
-        // Photos are landscape 4:3 — parent should use aspectRatio 4/3 so faces stay visible
-        transition={280}
-        placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-      />
+      {resolved ? (
+        <Image
+          source={resolved}
+          style={styles.image}
+          contentFit="cover"
+          transition={280}
+        />
+      ) : (
+        <View style={styles.fallback} />
+      )}
       {overlay ? (
         <LinearGradient
           colors={['transparent', 'rgba(13,59,18,0.75)']}
-          style={StyleSheet.absoluteFill}
+          style={styles.overlay}
         />
       ) : null}
-      {!resolved ? <View style={styles.fallback} /> : null}
     </View>
   );
 }
@@ -43,10 +45,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.primarySoft,
     borderRadius: radii.md,
+    position: 'relative',
   },
   image: {
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFill,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFill,
   },
   fallback: {
     ...StyleSheet.absoluteFill,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -43,16 +43,41 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <RootTabs />
-      </SafeAreaProvider>
+      <View style={styles.shell}>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <RootTabs />
+        </SafeAreaProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: {
+    flex: 1,
+    backgroundColor: Platform.OS === 'web' ? '#0D3B12' : colors.background,
+    ...(Platform.OS === 'web'
+      ? ({
+          alignItems: 'center',
+          justifyContent: 'center',
+        } as const)
+      : null),
+  },
+  shell: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: colors.background,
+    ...(Platform.OS === 'web'
+      ? ({
+          maxWidth: 430,
+          width: '100%',
+          maxHeight: '100%',
+          overflow: 'hidden',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+        } as const)
+      : null),
+  },
   boot: {
     flex: 1,
     alignItems: 'center',
