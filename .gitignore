@@ -1,0 +1,10 @@
+node_modules/
+mobile/node_modules/
+server/node_modules/
+.expo/
+dist/
+mobile/dist/
+.vercel/
+*.log
+.env
+.DS_Store

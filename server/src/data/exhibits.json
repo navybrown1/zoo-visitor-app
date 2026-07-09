@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ex-lions",
+    "name": "Lion Habitat",
+    "category": "mammals",
+    "latitude": 40.7678,
+    "longitude": -73.9718,
+    "description": "African lions and pride overlook"
+  },
+  {
+    "id": "ex-penguins",
+    "name": "Penguin Coast",
+    "category": "birds",
+    "latitude": 40.7685,
+    "longitude": -73.9732,
+    "description": "Gentoo and king penguins"
+  },
+  {
+    "id": "ex-reptiles",
+    "name": "Reptile House",
+    "category": "reptiles",
+    "latitude": 40.7669,
+    "longitude": -73.9725,
+    "description": "Snakes, lizards, and turtles"
+  },
+  {
+    "id": "ex-elephants",
+    "name": "Elephant Crossing",
+    "category": "mammals",
+    "latitude": 40.7692,
+    "longitude": -73.9705,
+    "description": "Asian elephant herd"
+  },
+  {
+    "id": "ex-aquarium",
+    "name": "Aquatic Pavilion",
+    "category": "aquatic",
+    "latitude": 40.7672,
+    "longitude": -73.9740,
+    "description": "Freshwater and marine exhibits"
+  }
+]

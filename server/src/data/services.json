@@ -1,0 +1,54 @@
+[
+  {
+    "id": "svc-rr-1",
+    "name": "Main Plaza Restrooms",
+    "type": "restroom",
+    "latitude": 40.7675,
+    "longitude": -73.9720,
+    "accessible": true
+  },
+  {
+    "id": "svc-rr-2",
+    "name": "Penguin Coast Restrooms",
+    "type": "restroom",
+    "latitude": 40.7687,
+    "longitude": -73.9735,
+    "accessible": true
+  },
+  {
+    "id": "svc-acc-1",
+    "name": "Accessibility Hub",
+    "type": "accessibility",
+    "latitude": 40.7670,
+    "longitude": -73.9715,
+    "accessible": true,
+    "description": "Wheelchair rentals and sensory kits"
+  },
+  {
+    "id": "svc-acc-2",
+    "name": "Quiet Room",
+    "type": "accessibility",
+    "latitude": 40.7680,
+    "longitude": -73.9708,
+    "accessible": true,
+    "description": "Low-stimulation rest space"
+  },
+  {
+    "id": "svc-fam-1",
+    "name": "Family Care Center",
+    "type": "family",
+    "latitude": 40.7668,
+    "longitude": -73.9730,
+    "accessible": true,
+    "description": "Nursing rooms and changing stations"
+  },
+  {
+    "id": "svc-fam-2",
+    "name": "Kids Splash Pad",
+    "type": "family",
+    "latitude": 40.7690,
+    "longitude": -73.9712,
+    "accessible": false,
+    "description": "Supervised play area"
+  }
+]
