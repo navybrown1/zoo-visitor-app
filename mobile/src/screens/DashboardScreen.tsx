@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   stripCard: {
-    width: 148,
-    height: 110,
+    width: 168,
+    aspectRatio: 4 / 3,
     borderRadius: radii.md,
     overflow: 'hidden',
     backgroundColor: colors.primarySoft,

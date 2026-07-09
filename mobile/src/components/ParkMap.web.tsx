@@ -17,6 +17,8 @@ import { getExhibitImageSource } from '../data/exhibitImages';
 import { MAP_HOTSPOTS, SERVICE_HOTSPOTS } from '../data/mapHotspots';
 
 const PARK_MAP = require('../../assets/map/park-map.png');
+/** park-map.png is 1024×768 */
+const MAP_ASPECT = 768 / 1024;
 
 const SERVICE_COLORS: Record<GuestService['type'], string> = {
   restroom: colors.service.restroom,
@@ -41,8 +43,8 @@ interface Props {
 }
 
 /**
- * Interactive illustrated park map — the visitor-facing map experience.
- * Tappable habitat zones on the custom park artwork + full habitat photo cards.
+ * Interactive illustrated park map — visitor-facing map experience.
+ * Full park artwork with tappable habitat zones + uncropped habitat photos.
  */
 export function ParkMap({
   exhibits,
@@ -51,10 +53,9 @@ export function ParkMap({
   onExhibitPress,
   selectedExhibitId,
 }: Props) {
-  const { width } = useWindowDimensions();
-  const mapWidth = Math.min(width - spacing.md * 2, 720);
-  // Artwork is roughly square / slightly tall
-  const mapHeight = mapWidth * 1.05;
+  const { width: windowWidth } = useWindowDimensions();
+  const mapWidth = Math.min(windowWidth - spacing.md * 2, 900);
+  const mapHeight = mapWidth * MAP_ASPECT;
   const hasRoute = routeCoords.length > 1;
   const selected = exhibits.find((e) => e.id === selectedExhibitId) ?? null;
 
@@ -63,7 +64,11 @@ export function ParkMap({
       <Text style={styles.hint}>Tap a habitat on the map to get directions</Text>
 
       <View style={[styles.mapFrame, { width: mapWidth, height: mapHeight }]}>
-        <Image source={PARK_MAP} style={styles.mapImage} contentFit="cover" />
+        <Image
+          source={PARK_MAP}
+          style={{ width: mapWidth, height: mapHeight }}
+          contentFit="fill"
+        />
 
         {exhibits.map((ex) => {
           const spot = MAP_HOTSPOTS[ex.id];
@@ -126,7 +131,7 @@ export function ParkMap({
           from={{ opacity: 0, translateY: 10 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 250 }}
-          style={styles.selectedCard}
+          style={[styles.selectedCard, { width: mapWidth }]}
         >
           <ExhibitPhoto
             source={getExhibitImageSource(selected.id, selected.imageUrl)}
@@ -143,7 +148,7 @@ export function ParkMap({
         </MotiView>
       ) : null}
 
-      <Text style={styles.section}>Habitats</Text>
+      <Text style={[styles.section, { width: mapWidth }]}>Habitats</Text>
       {exhibits.map((ex, index) => {
         const active = selectedExhibitId === ex.id;
         return (
@@ -152,6 +157,7 @@ export function ParkMap({
             from={{ opacity: 0, translateY: 12 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 280, delay: index * 40 }}
+            style={{ width: mapWidth }}
           >
             <Pressable
               onPress={() => onExhibitPress(ex)}
@@ -199,7 +205,7 @@ const styles = StyleSheet.create({
   hint: {
     ...typography.caption,
     color: colors.textSecondary,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     marginBottom: spacing.sm,
   },
   mapFrame: {
@@ -208,10 +214,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primaryLight,
     backgroundColor: colors.primarySoft,
-    alignSelf: 'center',
-  },
-  mapImage: {
-    ...StyleSheet.absoluteFill,
+    position: 'relative',
   },
   hotspot: {
     position: 'absolute',
@@ -253,9 +256,8 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   selectedCard: {
-    width: '100%',
     marginTop: spacing.lg,
-    height: 220,
+    aspectRatio: 4 / 3,
     borderRadius: radii.lg,
     overflow: 'hidden',
   },
@@ -289,7 +291,6 @@ const styles = StyleSheet.create({
   section: {
     ...typography.section,
     color: colors.primary,
-    alignSelf: 'flex-start',
     marginTop: spacing.xl,
     marginBottom: spacing.sm,
   },
@@ -306,9 +307,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderWidth: 2,
   },
+  /** Match 1024×768 animal photos so cover does not slice faces */
   exhibitPhoto: {
     width: '100%',
-    height: 220,
+    aspectRatio: 4 / 3,
     borderRadius: 0,
   },
   exhibitBody: {

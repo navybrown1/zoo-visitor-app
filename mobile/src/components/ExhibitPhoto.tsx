@@ -23,6 +23,7 @@ export function ExhibitPhoto({ source, uri, style, overlay = false }: Props) {
         source={resolved}
         style={styles.image}
         contentFit="cover"
+        // Photos are landscape 4:3 — parent should use aspectRatio 4/3 so faces stay visible
         transition={280}
         placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
       />
