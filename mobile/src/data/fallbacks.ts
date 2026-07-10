@@ -1,6 +1,10 @@
 import type { MapPayload, ParkingLot, SafetyNotification, WeatherAlert } from '../types';
 
-/** Offline fallbacks so the prototype still renders if the API is down. */
+/**
+ * Offline fallbacks for non-safety-critical prototype data.
+ * Weather and emergency information intentionally fail closed so the app
+ * never presents simulated safety data as current information.
+ */
 
 export const fallbackMap: MapPayload = {
   visitorEntrance: { latitude: 40.7674, longitude: -73.9712 },
@@ -85,25 +89,23 @@ export const fallbackMap: MapPayload = {
 };
 
 export const fallbackParking: ParkingLot[] = [
-  { id: 'lot-a', name: 'Lot A — Main Entrance', capacity: 400, occupied: 312, available: 88, fillPercent: 78 },
-  { id: 'lot-b', name: 'Lot B — Overflow', capacity: 250, occupied: 98, available: 152, fillPercent: 39 },
-];
-
-export const fallbackWeather: WeatherAlert = {
-  tempF: 92,
-  heatIndex: 98,
-  alertLevel: 'warning',
-  message: 'Heat advisory in effect. Seek shade and drink water.',
-  updatedAt: new Date().toISOString(),
-};
-
-export const fallbackNotifications: SafetyNotification[] = [
   {
-    id: 'notif-offline',
-    type: 'lost_child',
-    title: 'Lost Child Alert (offline)',
-    message: 'Connect to the API for live safety broadcasts.',
-    createdAt: new Date().toISOString(),
-    active: true,
+    id: 'lot-a',
+    name: 'Lot A — Main Entrance',
+    capacity: 400,
+    occupied: 312,
+    available: 88,
+    fillPercent: 78,
+  },
+  {
+    id: 'lot-b',
+    name: 'Lot B — Overflow',
+    capacity: 250,
+    occupied: 98,
+    available: 152,
+    fillPercent: 39,
   },
 ];
+
+export const fallbackWeather: WeatherAlert | null = null;
+export const fallbackNotifications: SafetyNotification[] = [];

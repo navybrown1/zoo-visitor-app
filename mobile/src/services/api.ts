@@ -8,7 +8,12 @@ import type {
   TicketType,
   WeatherAlert,
 } from '../types';
-import { fallbackMap, fallbackParking, fallbackWeather, fallbackNotifications } from '../data/fallbacks';
+import {
+  fallbackMap,
+  fallbackParking,
+  fallbackWeather,
+  fallbackNotifications,
+} from '../data/fallbacks';
 
 /**
  * API base URL:
@@ -107,7 +112,7 @@ export const api = {
     }
   },
 
-  async getWeather(): Promise<WeatherAlert> {
+  async getWeather(): Promise<WeatherAlert | null> {
     try {
       return await request<WeatherAlert>('/api/weather');
     } catch {

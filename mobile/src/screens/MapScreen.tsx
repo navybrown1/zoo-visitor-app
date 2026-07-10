@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import type { RouteProp } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { api } from '../services/api';
 import type { Exhibit, LatLng, MapPayload } from '../types';
+import type { RootTabParamList } from '../navigation/RootTabs';
 import {
   ServiceFilterToggles,
   type ServiceFilters,
@@ -26,13 +28,18 @@ const DEFAULT_REGION = {
   longitude: -73.9720,
 };
 
+type Props = {
+  route: RouteProp<RootTabParamList, 'Map'>;
+};
+
 /**
- * F002 — Interactive park map with mock exhibit routing.
+ * F002 — Interactive illustrated park map with mock exhibit routing.
  * F010 — Restroom / accessibility / family service filter toggles.
- * Desktop: full-width map + side gallery (no phone-frame chrome).
+ * Supports deep links from Home to a selected exhibit or guest service.
  */
-export function MapScreen() {
+export function MapScreen({ route }: Props) {
   const isDesktop = useIsDesktop();
+  const handledExhibit = useRef<string | null>(null);
   const [mapData, setMapData] = useState<MapPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ServiceFilters>({
@@ -80,8 +87,8 @@ export function MapScreen() {
       setSelectedExhibit(exhibit);
       setRouting(true);
       try {
-        const route = await api.getRoute(exhibit.id);
-        setRouteCoords(route.coordinates);
+        const nextRoute = await api.getRoute(exhibit.id);
+        setRouteCoords(nextRoute.coordinates);
       } catch {
         const origin = mapData?.visitorEntrance ?? DEFAULT_REGION;
         setRouteCoords([
@@ -95,9 +102,29 @@ export function MapScreen() {
     [mapData],
   );
 
+  useEffect(() => {
+    const exhibitId = route.params?.exhibitId;
+    if (!mapData || !exhibitId || handledExhibit.current === exhibitId) return;
+    const exhibit = mapData.exhibits.find((item) => item.id === exhibitId);
+    if (!exhibit) return;
+    handledExhibit.current = exhibitId;
+    void routeToExhibit(exhibit);
+  }, [mapData, route.params?.exhibitId, routeToExhibit]);
+
+  useEffect(() => {
+    const serviceType = route.params?.serviceType;
+    if (!serviceType) return;
+    setFilters({
+      restroom: serviceType === 'restroom',
+      accessibility: serviceType === 'accessibility',
+      family: serviceType === 'family',
+    });
+  }, [route.params?.serviceType]);
+
   const clearRoute = () => {
     setRouteCoords([]);
     setSelectedExhibit(null);
+    handledExhibit.current = null;
   };
 
   if (loading || !mapData) {
@@ -116,7 +143,7 @@ export function MapScreen() {
         {selectedExhibit && isDesktop ? (
           <View style={styles.routeBarDesktop}>
             <Text style={styles.routeText}>
-              {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
+              {routing ? 'Finding the best path…' : `Illustrated route to ${selectedExhibit.name}`}
             </Text>
             <Pressable onPress={clearRoute} hitSlop={8}>
               <Text style={styles.clearText}>Clear</Text>
@@ -176,7 +203,7 @@ export function MapScreen() {
           {selectedExhibit && (
             <View style={styles.routeBar}>
               <Text style={styles.routeText}>
-                {routing ? 'Finding the best path…' : `Route to ${selectedExhibit.name}`}
+                {routing ? 'Finding the best path…' : `Illustrated route to ${selectedExhibit.name}`}
               </Text>
               <Pressable onPress={clearRoute} hitSlop={8}>
                 <Text style={styles.clearText}>Clear</Text>

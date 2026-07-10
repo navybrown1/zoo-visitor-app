@@ -3,18 +3,17 @@ import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { HomeScreen } from '../screens/HomeScreen';
 import { MapScreen } from '../screens/MapScreen';
 import { TicketsScreen } from '../screens/TicketsScreen';
-import { DashboardScreen } from '../screens/DashboardScreen';
-import { StaffScanScreen } from '../screens/StaffScanScreen';
+import type { ServiceType } from '../types';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { colors, fonts } from '../theme';
 
 export type RootTabParamList = {
-  Map: undefined;
+  Home: undefined;
+  Map: { exhibitId?: string; serviceType?: ServiceType } | undefined;
   Tickets: undefined;
-  Dashboard: undefined;
-  Staff: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -33,30 +32,26 @@ const navTheme = {
 };
 
 const ICONS: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = {
+  Home: 'home',
   Map: 'map',
   Tickets: 'ticket',
-  Dashboard: 'stats-chart',
-  Staff: 'scan',
 };
 
-/**
- * Core Sprint 1 navigation: Map · Tickets · Dashboard · Staff
- * Desktop web uses a wider top header + roomier tab bar.
- */
+/** Visitor-only navigation. Staff operations live outside the guest experience. */
 export function RootTabs() {
   const isDesktop = useIsDesktop();
 
   return (
     <NavigationContainer theme={navTheme}>
       <Tab.Navigator
+        initialRouteName="Home"
         screenOptions={({ route }) => ({
+          headerShown: route.name !== 'Home',
           headerStyle: {
             backgroundColor: colors.primary,
             shadowOpacity: 0,
             elevation: 0,
-            ...(isDesktop && Platform.OS === 'web'
-              ? { height: 64 }
-              : null),
+            ...(isDesktop && Platform.OS === 'web' ? { height: 64 } : null),
           },
           headerTintColor: colors.white,
           headerTitleStyle: {
@@ -66,15 +61,14 @@ export function RootTabs() {
           headerTitleAlign: isDesktop ? 'left' : 'center',
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
+          tabBarHideOnKeyboard: true,
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.border,
             height: isDesktop ? 68 : 62,
             paddingBottom: isDesktop ? 10 : 8,
             paddingTop: isDesktop ? 8 : 6,
-            ...(isDesktop && Platform.OS === 'web'
-              ? { paddingHorizontal: 48 }
-              : null),
+            ...(isDesktop && Platform.OS === 'web' ? { paddingHorizontal: 48 } : null),
           },
           tabBarLabelStyle: {
             fontFamily: fonts.bodyMedium,
@@ -93,10 +87,9 @@ export function RootTabs() {
           },
         })}
       >
+        <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
         <Tab.Screen name="Map" component={MapScreen} options={{ title: 'Park Map' }} />
         <Tab.Screen name="Tickets" component={TicketsScreen} options={{ title: 'Tickets' }} />
-        <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Dashboard' }} />
-        <Tab.Screen name="Staff" component={StaffScanScreen} options={{ title: 'Staff Scan' }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
