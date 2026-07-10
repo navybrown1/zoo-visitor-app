@@ -23,21 +23,20 @@ interface Props {
   pollMs?: number;
 }
 
-/**
- * F006 — Notification listener scaffold for lost-child and emergency broadcasts.
- */
+/** F006 — Listener for verified API-provided lost-child and emergency broadcasts. */
 export function NotificationListener({ pollMs = 8000 }: Props) {
   const [items, setItems] = useState<SafetyNotification[]>([]);
   const seenIds = useRef<Set<string>>(new Set());
   const permissionAsked = useRef(false);
 
-  const ensurePermission = useCallback(async () => {
-    if (permissionAsked.current) return;
-    permissionAsked.current = true;
+  const ensurePermission = useCallback(async (): Promise<boolean> => {
     const { status: existing } = await Notifications.getPermissionsAsync();
-    if (existing !== 'granted') {
-      await Notifications.requestPermissionsAsync();
-    }
+    if (existing === 'granted') return true;
+    if (permissionAsked.current) return false;
+
+    permissionAsked.current = true;
+    const requested = await Notifications.requestPermissionsAsync();
+    return requested.status === 'granted';
   }, []);
 
   const poll = useCallback(async () => {
@@ -45,44 +44,48 @@ export function NotificationListener({ pollMs = 8000 }: Props) {
       const notifications = await api.getNotifications();
       setItems(notifications);
 
-      for (const n of notifications) {
-        if (!seenIds.current.has(n.id)) {
-          seenIds.current.add(n.id);
+      if (notifications.length === 0) return;
+      const canNotify = await ensurePermission();
+
+      for (const notification of notifications) {
+        if (seenIds.current.has(notification.id)) continue;
+        seenIds.current.add(notification.id);
+
+        if (canNotify) {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: n.title,
-              body: n.message,
-              data: { type: n.type, id: n.id },
+              title: notification.title,
+              body: notification.message,
+              data: { type: notification.type, id: notification.id },
             },
             trigger: null,
           });
         }
       }
     } catch {
-      // Keep last known list; api client already falls back when offline.
+      // Fail closed: keep the last verified list and never manufacture an alert.
     }
-  }, []);
+  }, [ensurePermission]);
 
   useEffect(() => {
-    ensurePermission();
-    poll();
-    const id = setInterval(poll, pollMs);
+    void poll();
+    const id = setInterval(() => void poll(), pollMs);
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') poll();
+      if (state === 'active') void poll();
     });
     return () => {
       clearInterval(id);
       sub.remove();
     };
-  }, [ensurePermission, poll, pollMs]);
+  }, [poll, pollMs]);
 
   return (
     <Card style={styles.card}>
       <View style={styles.headingRow}>
-        <Ionicons name="shield-checkmark-outline" size={20} color={colors.danger} />
+        <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
         <Text style={styles.heading}>Safety Alerts</Text>
       </View>
-      <Text style={styles.sub}>Listening for lost-child & emergency broadcasts</Text>
+      <Text style={styles.sub}>Verified broadcasts from zoo staff appear here.</Text>
 
       {items.length === 0 ? (
         <EmptyState
@@ -91,20 +94,22 @@ export function NotificationListener({ pollMs = 8000 }: Props) {
           body="No active safety broadcasts right now."
         />
       ) : (
-        items.map((n, index) => (
+        items.map((notification, index) => (
           <MotiView
-            key={n.id}
+            key={notification.id}
             from={{ opacity: 0, translateX: -12 }}
             animate={{ opacity: 1, translateX: 0 }}
             transition={{ type: 'timing', duration: 280, delay: index * 50 }}
             style={[
               styles.alert,
-              n.type === 'emergency' ? styles.emergency : styles.lostChild,
+              notification.type === 'emergency' ? styles.emergency : styles.lostChild,
             ]}
           >
-            <Text style={styles.alertTitle}>{n.title}</Text>
-            <Text style={styles.alertBody}>{n.message}</Text>
-            <Text style={styles.alertMeta}>{new Date(n.createdAt).toLocaleString()}</Text>
+            <Text style={styles.alertTitle}>{notification.title}</Text>
+            <Text style={styles.alertBody}>{notification.message}</Text>
+            <Text style={styles.alertMeta}>
+              {new Date(notification.createdAt).toLocaleString()}
+            </Text>
           </MotiView>
         ))
       )}
@@ -125,7 +130,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     ...typography.section,
-    color: colors.danger,
+    color: colors.primary,
   },
   sub: {
     ...typography.caption,
