@@ -1,1 +1,0 @@
-Home screen implementation added in HomeScreen.tsx.
